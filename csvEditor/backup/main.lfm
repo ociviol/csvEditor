@@ -1,55 +1,58 @@
 object FrmMain: TFrmMain
   Left = 415
-  Height = 723
+  Height = 611
   Top = 144
-  Width = 1028
+  Width = 893
   Caption = 'csv Editor'
-  ClientHeight = 723
-  ClientWidth = 1028
+  ClientHeight = 611
+  ClientWidth = 893
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   LCLVersion = '2.0.4.0'
   object StringGrid1: TStringGrid
     Left = 0
-    Height = 674
-    Top = 26
-    Width = 1028
+    Height = 564
+    Top = 24
+    Width = 893
     Align = alClient
     DefaultColWidth = 100
     DefaultDrawing = False
     FixedCols = 0
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goRowSizing, goColSizing, goEditing, goThumbTracking, goDblClickAutoSize, goSmoothScroll, goSelectionActive, goRowHighlight]
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goRowSizing, goColSizing, goThumbTracking, goDblClickAutoSize, goSmoothScroll, goSelectionActive, goRowHighlight]
     PopupMenu = PopupMenu1
     RowCount = 1
     TabOrder = 0
     OnDrawCell = StringGrid1DrawCell
     OnEditingDone = StringGrid1EditingDone
     OnGetEditText = StringGrid1GetEditText
+    OnSelectCell = StringGrid1SelectCell
     OnSetEditText = StringGrid1SetEditText
   end
   object StatusBar1: TStatusBar
     Left = 0
     Height = 23
-    Top = 700
-    Width = 1028
+    Top = 588
+    Width = 893
     Panels = <    
       item
-        Width = 130
+        Width = 200
       end    
       item
         Text = 'RowCount:'
-        Width = 100
+        Width = 120
       end    
       item
         Text = 'ColCount :'
-        Width = 80
+        Width = 120
       end>
+    SimplePanel = False
   end
   object ToolBar1: TToolBar
     Left = 0
-    Height = 26
+    Height = 24
     Top = 0
-    Width = 1028
+    Width = 893
     Caption = 'ToolBar1'
     Images = ImageList1
     TabOrder = 2
@@ -69,6 +72,47 @@ object FrmMain: TFrmMain
       Top = 2
       Caption = 'ToolButton3'
       Style = tbsSeparator
+    end
+    object edValue: TEdit
+      Left = 55
+      Height = 23
+      Top = 2
+      Width = 529
+      OnExit = edValueExit
+      TabOrder = 0
+    end
+    object ToolButton4: TToolButton
+      Left = 584
+      Height = 22
+      Top = 2
+      Caption = 'ToolButton4'
+      Style = tbsSeparator
+    end
+    object rbWindows: TRadioButton
+      Left = 592
+      Height = 19
+      Top = 2
+      Width = 72
+      Caption = 'Windows '
+      Checked = True
+      TabOrder = 2
+      TabStop = True
+    end
+    object rbLinux: TRadioButton
+      Left = 664
+      Height = 19
+      Top = 2
+      Width = 77
+      Caption = 'Linux/OsX '
+      TabOrder = 1
+    end
+    object Label1: TLabel
+      Left = 741
+      Height = 15
+      Top = 2
+      Width = 55
+      Caption = ' File Mode'
+      ParentColor = False
     end
   end
   object ActionList1: TActionList
