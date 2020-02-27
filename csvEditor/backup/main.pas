@@ -20,26 +20,29 @@ type
     ActionOpen: TAction;
     ActionList1: TActionList;
     cbAutoSave: TCheckBox;
+    edPosition: TEdit;
     edValue: TEdit;
     ImageList1: TImageList;
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
     OpenDialog1: TOpenDialog;
     Panel1: TPanel;
+    Panel2: TPanel;
     PopupMenu1: TPopupMenu;
     StatusBar1: TStatusBar;
     StringGrid1: TStringGrid;
+    tbAutoSave: TTrackBar;
     ToolBar1: TToolBar;
     ToolButton1: TToolButton;
     ToolButton2: TToolButton;
     ToolButton3: TToolButton;
     ToolButton4: TToolButton;
-    tbAutoSave: TTrackBar;
     procedure ActionAddColExecute(Sender: TObject);
     procedure ActionAddRowExecute(Sender: TObject);
     procedure ActionAutoSaveExecute(Sender: TObject);
     procedure ActionOpenExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
+    procedure cbAutoSaveChange(Sender: TObject);
     procedure edValueExit(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
@@ -88,15 +91,26 @@ end;
 
 procedure TFrmMain.StringGrid1DrawCell(Sender: TObject; aCol, aRow: Integer;
   aRect: TRect; aState: TGridDrawState);
+
+  function GetRowHeader(V : integer):String;
+  var
+    st : integer;
+  begin
+    result := '';
+    while v > 32 do
+    begin
+      result := result + Chr(90);
+      v := v - 25
+    end;
+    result := result + Chr(65 + v);
+  end;
+
 var
   x, y : integer;
   s : string;
 begin
   with StringGrid1 do
   begin
-    //if ColCount < aCol + 2 then
-    //  ColCount := aCol + 2;
-
     with Canvas do
     begin
       if (aCol = 0) or (aRow = 0) then
@@ -121,7 +135,7 @@ begin
           s := IntToStr(aRow)
         else
         if aRow = 0 then
-          s := Chr(65 + (aCol - 1));
+          s := GetRowHeader(aCol-1);
 
         y := ((aRect.Bottom - aRect.Top) - TextHeight(s)) div 2;
         x := ((aRect.Right - aRect.Left) - TextWidth(s)) div 2;
@@ -162,7 +176,10 @@ procedure TFrmMain.StringGrid1SelectCell(Sender: TObject; aCol, aRow: Integer;
 begin
   CanSelect := (aCol > 0) and (aRow > 0);
   if Assigned(FStream) and CanSelect then
+  begin
+    edPosition.Text := Char(65 + (aCol - 1)) + IntToStr(aRow);
     edValue.Text := FStream.CellAsString[arow - 1, acol - 1];
+  end;
 end;
 
 procedure TFrmMain.StringGrid1SetEditText(Sender: TObject; ACol, ARow: Integer;
@@ -181,7 +198,8 @@ begin
     begin
       FreeAndNil(FStream);
       FStream := TCsvStream.Create(Filename, @Notifyer);
-      FStream.AutoSaveInc := tbAutoSave.Position;
+      if cbAutoSave.Checked then
+         FStream.AutoSaveInc := tbAutoSave.Position;
       EnableActions;
     end;
 end;
@@ -204,7 +222,11 @@ end;
 
 procedure TFrmMain.ActionAutoSaveExecute(Sender: TObject);
 begin
-  FStream.AutoSaveInc := tbAutoSave.Position;
+  If Assigned(FStream) then
+    if cbAutoSave.Checked then
+      FStream.AutoSaveInc := tbAutoSave.Position
+    else
+      FStream.AutoSaveInc := 0;
 end;
 
 procedure TFrmMain.ActionAddColExecute(Sender: TObject);
@@ -225,6 +247,11 @@ begin
   end;
 end;
 
+procedure TFrmMain.cbAutoSaveChange(Sender: TObject);
+begin
+  tbAutoSave.Enabled := cbAutoSave.Checked;
+end;
+
 procedure TFrmMain.edValueExit(Sender: TObject);
 begin
   with StringGrid1, FStream do
@@ -235,7 +262,12 @@ end;
 
 procedure TFrmMain.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
-  CanClose := True;
+  if Assigned(FStream) then
+    if FStream.ReadState = csAnalyzing then
+      FStream.Cancel;
+
+  CanClose :=  True;
+
   if Assigned(FStream) and FStream.Modified then
     case MessageDlg('Save changes ?', mtInformation, mbYesNoCancel, 0) of
       mrYes:    FStream.Save;

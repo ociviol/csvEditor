@@ -8,9 +8,10 @@
       <Unit0>
         <Filename Value="csvEditorWin.lpr"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="-1"/>
+        <EditorIndex Value="1"/>
         <CursorPos Y="21"/>
-        <UsageCount Value="35"/>
+        <UsageCount Value="39"/>
+        <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="main.pas"/>
@@ -18,44 +19,42 @@
         <ComponentName Value="FrmMain"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="156"/>
-        <CursorPos X="54" Y="168"/>
-        <UsageCount Value="35"/>
+        <TopLine Value="191"/>
+        <CursorPos X="10" Y="202"/>
+        <UsageCount Value="39"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="uCsv.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="5"/>
-        <TopLine Value="434"/>
-        <CursorPos Y="453"/>
-        <UsageCount Value="35"/>
-        <Bookmarks Count="3">
-          <Item0 X="11" Y="710" ID="3"/>
-          <Item1 X="3" Y="720" ID="4"/>
-          <Item2 X="13" Y="373" ID="2"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="458"/>
+        <CursorPos X="21" Y="471"/>
+        <UsageCount Value="39"/>
+        <Bookmarks Count="4">
+          <Item0 X="11" Y="722" ID="3"/>
+          <Item1 X="3" Y="732" ID="4"/>
+          <Item2 X="80" Y="378" ID="2"/>
+          <Item3 X="20" Y="660" ID="1"/>
         </Bookmarks>
         <Loaded Value="True"/>
       </Unit2>
       <Unit3>
         <Filename Value="C:\lazarus\lcl\include\statuspanels.inc"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="5"/>
         <CursorPos Y="28"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="15"/>
         <Loaded Value="True"/>
       </Unit3>
       <Unit4>
         <Filename Value="C:\lazarus\lcl\grids.pas"/>
         <UnitName Value="Grids"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="2"/>
         <TopLine Value="1706"/>
         <CursorPos X="45" Y="1716"/>
-        <UsageCount Value="14"/>
-        <Bookmarks Count="1">
-          <Item0 Y="5530" ID="1"/>
-        </Bookmarks>
+        <UsageCount Value="16"/>
         <Loaded Value="True"/>
       </Unit4>
       <Unit5>
@@ -67,166 +66,157 @@
       </Unit5>
       <Unit6>
         <Filename Value="C:\lazarus\fpc\3.0.4\source\rtl\objpas\classes\classesh.inc"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="8"/>
         <TopLine Value="311"/>
         <CursorPos X="15" Y="329"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="15"/>
         <Loaded Value="True"/>
       </Unit6>
       <Unit7>
         <Filename Value="C:\lazarus\fpc\3.0.4\source\rtl\objpas\classes\lists.inc"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="9"/>
         <TopLine Value="740"/>
         <CursorPos X="3" Y="745"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="15"/>
         <Loaded Value="True"/>
       </Unit7>
       <Unit8>
         <Filename Value="C:\lazarus\fpc\3.0.4\source\rtl\inc\heaph.inc"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="65"/>
         <CursorPos X="10" Y="99"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="15"/>
         <Loaded Value="True"/>
       </Unit8>
       <Unit9>
         <Filename Value="C:\lazarus\lcl\include\winapi.inc"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="273"/>
         <CursorPos Y="292"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="13"/>
         <Loaded Value="True"/>
       </Unit9>
       <Unit10>
         <Filename Value="C:\lazarus\lcl\interfaces\win32\win32callback.inc"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="1975"/>
         <CursorPos Y="1993"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="13"/>
         <Loaded Value="True"/>
       </Unit10>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="28" HistoryIndex="27">
       <Position1>
-        <Filename Value="main.pas"/>
-        <Caret Line="89" Column="61" TopLine="76"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="473" TopLine="448"/>
       </Position1>
       <Position2>
-        <Filename Value="main.pas"/>
-        <Caret Line="135" Column="51" TopLine="104"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="475" Column="35" TopLine="454"/>
       </Position2>
       <Position3>
-        <Filename Value="main.pas"/>
-        <Caret Line="173" Column="54" TopLine="139"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="992" TopLine="969"/>
       </Position3>
       <Position4>
-        <Filename Value="main.pas"/>
-        <Caret Line="98" Column="7" TopLine="79"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="467" TopLine="448"/>
       </Position4>
       <Position5>
-        <Filename Value="main.pas"/>
-        <Caret Line="288" TopLine="257"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="992" Column="37" TopLine="969"/>
       </Position5>
       <Position6>
-        <Filename Value="main.pas"/>
-        <Caret Line="289" TopLine="257"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="994" TopLine="969"/>
       </Position6>
       <Position7>
-        <Filename Value="main.pas"/>
-        <Caret Line="290" TopLine="258"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="985" Column="26" TopLine="969"/>
       </Position7>
       <Position8>
-        <Filename Value="main.pas"/>
-        <Caret Line="289" TopLine="257"/>
+        <Filename Value="uCsv.pas"/>
       </Position8>
       <Position9>
-        <Filename Value="main.pas"/>
-        <Caret Line="290" TopLine="258"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="19" Column="18"/>
       </Position9>
       <Position10>
-        <Filename Value="main.pas"/>
-        <Caret Line="289" TopLine="257"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="36" Column="38" TopLine="5"/>
       </Position10>
       <Position11>
-        <Filename Value="main.pas"/>
-        <Caret Line="288" TopLine="256"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="134" Column="18" TopLine="103"/>
       </Position11>
       <Position12>
-        <Filename Value="main.pas"/>
-        <Caret Line="287" TopLine="255"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="338" Column="23" TopLine="332"/>
       </Position12>
       <Position13>
-        <Filename Value="main.pas"/>
-        <Caret Line="290" TopLine="258"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="80" Column="17" TopLine="45"/>
       </Position13>
       <Position14>
-        <Filename Value="main.pas"/>
-        <Caret Line="289" TopLine="257"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="323" Column="3" TopLine="314"/>
       </Position14>
       <Position15>
-        <Filename Value="main.pas"/>
-        <Caret Line="288" TopLine="256"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="464" TopLine="445"/>
       </Position15>
       <Position16>
-        <Filename Value="main.pas"/>
-        <Caret Line="290" TopLine="258"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="466" TopLine="445"/>
       </Position16>
       <Position17>
-        <Filename Value="main.pas"/>
-        <Caret Line="289" TopLine="257"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="467" TopLine="445"/>
       </Position17>
       <Position18>
-        <Filename Value="main.pas"/>
-        <Caret Line="288" TopLine="256"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="974" TopLine="955"/>
       </Position18>
       <Position19>
-        <Filename Value="main.pas"/>
-        <Caret Line="287" TopLine="255"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="467" TopLine="448"/>
       </Position19>
       <Position20>
-        <Filename Value="main.pas"/>
-        <Caret Line="290" TopLine="258"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="377" TopLine="370"/>
       </Position20>
       <Position21>
-        <Filename Value="main.pas"/>
-        <Caret Line="289" TopLine="257"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="379" TopLine="370"/>
       </Position21>
       <Position22>
-        <Filename Value="main.pas"/>
-        <Caret Line="288" TopLine="256"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="467" TopLine="448"/>
       </Position22>
       <Position23>
-        <Filename Value="main.pas"/>
-        <Caret Line="287" TopLine="255"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="469" TopLine="448"/>
       </Position23>
       <Position24>
-        <Filename Value="main.pas"/>
-        <Caret Line="289" TopLine="257"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="474" Column="28" TopLine="448"/>
       </Position24>
       <Position25>
-        <Filename Value="main.pas"/>
-        <Caret Line="290" TopLine="258"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="992" TopLine="969"/>
       </Position25>
       <Position26>
-        <Filename Value="main.pas"/>
-        <Caret Line="289" TopLine="257"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="472" Column="29" TopLine="448"/>
       </Position26>
       <Position27>
-        <Filename Value="main.pas"/>
-        <Caret Line="288" TopLine="256"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="476" TopLine="448"/>
       </Position27>
       <Position28>
-        <Filename Value="main.pas"/>
-        <Caret Line="287" TopLine="255"/>
+        <Filename Value="uCsv.pas"/>
+        <Caret Line="475" Column="25" TopLine="456"/>
       </Position28>
-      <Position29>
-        <Filename Value="main.pas"/>
-        <Caret Line="290" TopLine="258"/>
-      </Position29>
-      <Position30>
-        <Filename Value="main.pas"/>
-        <Caret Line="291" TopLine="259"/>
-      </Position30>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
@@ -234,84 +224,126 @@
     </RunParams>
   </ProjectSession>
   <Debugging>
-    <BreakPoints Count="11">
+    <BreakPoints Count="17">
       <Item1>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="666"/>
+        <Line Value="678"/>
       </Item1>
       <Item2>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="679"/>
+        <Line Value="686"/>
       </Item2>
       <Item3>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="676"/>
+        <Line Value="683"/>
       </Item3>
       <Item4>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="661"/>
+        <Line Value="635"/>
       </Item4>
       <Item5>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="622"/>
+        <Line Value="630"/>
       </Item5>
       <Item6>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="670"/>
+        <Line Value="671"/>
       </Item6>
       <Item7>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="617"/>
+        <Line Value="636"/>
       </Item7>
       <Item8>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="657"/>
+        <Line Value="653"/>
       </Item8>
       <Item9>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="623"/>
+        <Line Value="706"/>
       </Item9>
       <Item10>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="637"/>
+        <Line Value="692"/>
       </Item10>
       <Item11>
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="uCsv.pas"/>
-        <Line Value="694"/>
+        <Line Value="650"/>
       </Item11>
+      <Item12>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="uCsv.pas"/>
+        <Line Value="660"/>
+      </Item12>
+      <Item13>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="uCsv.pas"/>
+        <Line Value="648"/>
+      </Item13>
+      <Item14>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="uCsv.pas"/>
+        <Line Value="467"/>
+      </Item14>
+      <Item15>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="uCsv.pas"/>
+        <Line Value="993"/>
+      </Item15>
+      <Item16>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="uCsv.pas"/>
+        <Line Value="377"/>
+      </Item16>
+      <Item17>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="uCsv.pas"/>
+        <Line Value="991"/>
+      </Item17>
     </BreakPoints>
   </Debugging>
 </CONFIG>

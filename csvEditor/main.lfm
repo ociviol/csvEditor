@@ -127,6 +127,7 @@ object FrmMain: TFrmMain
         Width = 73
         Action = ActionAutoSave
         Align = alLeft
+        OnChange = cbAutoSaveChange
         TabOrder = 0
       end
       object tbAutoSave: TTrackBar
@@ -137,7 +138,7 @@ object FrmMain: TFrmMain
         Width = 112
         Frequency = 5
         Max = 30
-        Position = 0
+        Position = 5
         Align = alClient
         Enabled = False
         TabOrder = 1
