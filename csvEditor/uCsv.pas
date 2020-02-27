@@ -49,10 +49,6 @@ type
     function GetColCount(aRow: Integer): Integer;
     function GetRowCount: Integer;
     function GetRow(aRow: Integer): TRow;
-    //function GetCell(aRow, aCol: Integer): String;
-    //function GetCellString(aRow, aCol: Integer): String;
-    //function GetCellVariant(aRow, aCol: Integer): Variant;
-    //procedure SetCellAsString(aRow, aCol: Integer; const Value: String);
     procedure Close(bFreePos : Boolean = True);
     procedure Open(const aFilename : string);
     function GetState: TCsvState;
