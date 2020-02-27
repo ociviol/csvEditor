@@ -9,6 +9,7 @@ object FrmMain: TFrmMain
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  ShowHint = True
   LCLVersion = '2.0.4.0'
   object StringGrid1: TStringGrid
     Left = 0
@@ -16,15 +17,16 @@ object FrmMain: TFrmMain
     Top = 24
     Width = 893
     Align = alClient
+    ColCount = 2
     DefaultColWidth = 100
     DefaultDrawing = False
-    FixedCols = 0
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goRowSizing, goColSizing, goThumbTracking, goDblClickAutoSize, goSmoothScroll, goSelectionActive, goRowHighlight]
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goRowSizing, goColSizing, goThumbTracking, goDblClickAutoSize, goSmoothScroll, goSelectionActive, goCellHints, goRowHighlight]
     PopupMenu = PopupMenu1
     RowCount = 1
     TabOrder = 0
     OnDrawCell = StringGrid1DrawCell
     OnEditingDone = StringGrid1EditingDone
+    OnGetCellHint = StringGrid1GetCellHint
     OnGetEditText = StringGrid1GetEditText
     OnSelectCell = StringGrid1SelectCell
     OnSetEditText = StringGrid1SetEditText
@@ -88,31 +90,37 @@ object FrmMain: TFrmMain
       Caption = 'ToolButton4'
       Style = tbsSeparator
     end
-    object rbWindows: TRadioButton
+    object Panel1: TPanel
       Left = 592
-      Height = 19
+      Height = 22
       Top = 2
-      Width = 72
-      Caption = 'Windows '
-      Checked = True
-      TabOrder = 2
-      TabStop = True
-    end
-    object rbLinux: TRadioButton
-      Left = 664
-      Height = 19
-      Top = 2
-      Width = 77
-      Caption = 'Linux/OsX '
+      Width = 138
+      BevelOuter = bvNone
+      ClientHeight = 22
+      ClientWidth = 138
       TabOrder = 1
-    end
-    object Label1: TLabel
-      Left = 741
-      Height = 15
-      Top = 2
-      Width = 55
-      Caption = ' File Mode'
-      ParentColor = False
+      object cbAutoSave: TCheckBox
+        Left = 0
+        Height = 22
+        Top = 0
+        Width = 73
+        Action = ActionAutoSave
+        Align = alLeft
+        TabOrder = 0
+      end
+      object tbAutoSave: TTrackBar
+        Left = 73
+        Height = 22
+        Hint = 'AutoSave Interval in Minutes'
+        Top = 0
+        Width = 65
+        Frequency = 5
+        Max = 30
+        Position = 0
+        Align = alClient
+        Enabled = False
+        TabOrder = 1
+      end
     end
   end
   object ActionList1: TActionList
@@ -139,6 +147,10 @@ object FrmMain: TFrmMain
       Caption = 'Add Col'
       Hint = 'Add a column'
       OnExecute = ActionAddColExecute
+    end
+    object ActionAutoSave: TAction
+      Caption = 'Auto Save'
+      OnExecute = ActionAutoSaveExecute
     end
   end
   object ImageList1: TImageList

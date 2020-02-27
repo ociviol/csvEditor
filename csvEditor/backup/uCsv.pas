@@ -34,7 +34,6 @@ type
     FPos : Int64;
     FCsvThreadRead : TCsvThreadRead;
     FCsvThreadWrite : TCsvThreadWrite;
-    Flock : TThreadList;
     FNotifyer : TCsvNotyfier;
     FSeparator : String;
     FCachedRows : TCacheObjList; //TCacheObj;
@@ -42,7 +41,10 @@ type
     FSaveOnFree,
     InFlush : Boolean;
     FFilename : string;
+    FAutoSaveInc,
+    FCurLine: Integer;
 
+    function GetAutoSaveInc: Integer;
     function GetCellString(aRow: Integer; aCol: Integer): String;
     function GetCellVariant(aRow: Integer; aCol: Integer): Variant;
     function GetModified: Boolean;
@@ -59,6 +61,9 @@ type
     procedure Close(bFreePos : Boolean = True);
     procedure Open(const aFilename : string);
     function GetState: TCsvState;
+    procedure DoNotifyerSave;
+    procedure DoNotifyerDoneSave;
+    procedure SetAutoSaveInc(AValue: Integer);
     procedure SetCellAsString(aRow: Integer; aCol: Integer; AValue: String);
   protected
     FMaxColCount: Integer;
@@ -86,6 +91,7 @@ type
     property CellAsString[aRow:Integer; aCol:Integer]:String read GetCellString write SetCellAsString;
     property ReadState : TCsvState read GetState;
     property Modified:Boolean read GetModified;
+    property AutoSaveInc:Integer read GetAutoSaveInc write SetAutoSaveInc;
   end;
 
   { TCacheObjList }
@@ -127,8 +133,9 @@ type
   private
     FFile : TCsvStream;
     FNotifyer : TCsvNotyfier;
+    FAutoSaveInc : Integer;
   public
-    constructor Create(aFile : TCsvStream; aNotifyer : TCsvNotyfier = nil);
+    constructor Create(aFile : TCsvStream; AutoSaveInc : Integer = 0; aNotifyer : TCsvNotyfier = nil);
     procedure Execute; override;
   end;
 
@@ -162,6 +169,9 @@ type
   end;
 
 implementation
+
+uses
+  DateUtils, StrUtils;
 
 { TCacheObjList }
 
@@ -221,8 +231,6 @@ begin
   inherited Delete(aRow);
 end;
 
-//uses
-//  uEncrypt;
 
 { TCsvStream }
 
@@ -302,13 +310,15 @@ begin
   end;
 end;
 
-constructor TCsvStream.Create(const Filename : String; SaveOnFree : Boolean = False; aNotifyer : TCsvNotyfier = nil);
+constructor TCsvStream.Create(const Filename : String;
+                              SaveOnFree : Boolean = False; aNotifyer : TCsvNotyfier = nil);
 begin
   inherited Create;
 
   FFilename := Filename;
   FMaxColCount := 0;
   FNotifyer := aNotifyer;
+  FAutoSaveInc := 0;
   FRowCount := 0;
   FCurRow := -1;
   FPos := -1;
@@ -316,7 +326,6 @@ begin
   FSeparator := ''; //aSeparator;
   FCachedRows := TCacheObjList.Create;
   FSaveOnFree := SaveOnFree;
-  Flock := TThreadList.Create;
   FModifs := TModif.Create;
   FCsvThreadWrite := nil;
   FCsvThreadRead := nil;
@@ -326,7 +335,6 @@ end;
 
 procedure TCsvStream.Open(const aFilename : string);
 var
-  MemMgr : TMemoryManager;
   st : THeapStatus;
   v : Cardinal;
 
@@ -341,16 +349,14 @@ var
     FindClose(sr);
   end;
 begin
-  GetMemoryManager(MemMgr);
-  //if MemMgr.NeedLock;
   st := GetHeapStatus;
   v := st.TotalAddrSpace - st.TotalAllocated;
   if FileExists(afilename) then
   begin
-    if GetFileSize < v div 6 then
+    if GetFileSize < (v div 10) then
     begin
       FStream := TMemoryStream.Create;
-      FStream.LoadFromFile(aFilename);
+      TMemoryStream(FStream).LoadFromFile(aFilename);
       FStream.Position := 0;
     end
     else
@@ -364,8 +370,8 @@ begin
       FNotifyer(Self, '', csReady, 0);
   end;
 
-  if FSaveOnFree then
-    FCsvThreadWrite := TCsvThreadWrite.Create(Self);
+  if not Assigned(FCsvThreadWrite) and (FSaveOnFree or (FAutoSaveInc > 0)) then
+    FCsvThreadWrite := TCsvThreadWrite.Create(Self, FAutoSaveInc, FNotifyer);
 end;
 
 procedure TCsvStream.Close(bFreePos : Boolean = True);
@@ -373,7 +379,7 @@ begin
   if (FModifs.Count > 0) and FSaveOnFree then
     if Assigned(FCsvThreadWrite) then
     begin
-      FCsvThreadWrite.Resume;
+      //FCsvThreadWrite.Resume;
       while FModifs.Count > 0 do
       Sleep(100);
     end;
@@ -382,15 +388,15 @@ begin
   begin
     if (FModifs.Count > 0) and FSaveOnFree then
     begin
-      FCsvThreadWrite.Resume;
+      //FCsvThreadWrite.Resume;
       while FModifs.Count > 0 do
         Sleep(100);
     end;
 
     with FCsvThreadWrite do
     begin
-      if Suspended then
-        Resume;
+      //if Suspended then
+      //  Resume;
       Terminate;
     end;
   end;
@@ -411,8 +417,8 @@ begin
   end;
 
   Close;
-
-  FLock.Free;
+  FCachedRows.Clear;
+  FCachedRows.Free;
   FModifs.Free;
 
   inherited;
@@ -423,16 +429,21 @@ procedure TCsvStream.SetCellAsString(aRow: Integer; aCol: Integer;
 var
   r : TRow;
 begin
-  r := FModifs.Row[aRow];
-  if length(r) = 0 then
-    r := GetRow(aRow);
+  FModifs.Lock;
+  try
+    r := FModifs.Row[aRow];
+    if length(r) = 0 then
+      r := GetRow(aRow);
 
-  // remove from cache
-  if Assigned(IsInCache(aRow)) then
-    FCachedRows.Delete(aRow);
+    // remove from cache
+    if Assigned(IsInCache(aRow)) then
+      FCachedRows.Delete(aRow);
 
-  r[aCol] := aValue;
-  FModifs.Add(r, aRow);
+    r[aCol] := aValue;
+    FModifs.Add(r, aRow);
+  finally
+    FModifs.UnLock;
+  end;
 end;
 
 function TCsvStream.GetCellString(aRow: Integer; aCol: Integer): String;
@@ -444,6 +455,18 @@ begin
     result := r[aCol]
   else
     result := '';
+end;
+
+procedure TCsvStream.SetAutoSaveInc(AValue: Integer);
+begin
+  FAutoSaveInc := AValue;
+  if not Assigned(FCsvThreadWrite) and (FSaveOnFree or (FAutoSaveInc > 0)) then
+    FCsvThreadWrite := TCsvThreadWrite.Create(Self, FAutoSaveInc, FNotifyer);
+end;
+
+function TCsvStream.GetAutoSaveInc: Integer;
+begin
+  result := FAutoSaveInc;
 end;
 
 function TCsvStream.GetCellVariant(aRow: Integer; aCol: Integer): Variant;
@@ -476,14 +499,14 @@ end;
 
 function TCsvStream.GetColCount(aRow: Integer): Integer;
 begin
-  FLock.LockList;
+  FModifs.Lock;
   try
     if Length(FColcounts) >= aRow + 1 then
       Result := FColcounts[aRow]
     else
       Result := -1;
   finally
-    FLock.UnLockList;
+    FModifs.UnLock;
   end;
 end;
 
@@ -491,7 +514,7 @@ function TCsvStream.GetRow(aRow: Integer): TRow;
 var
   s : string;
 begin
-  FLock.LockList;
+  FModifs.Lock;
   try
     SetLength(Result, 0);
 
@@ -509,17 +532,17 @@ begin
       result := GetCachedRow(aRow);
     end;
   finally
-    FLock.UnLockList;
+    FModifs.UnLock;
   end;
 end;
 
 function TCsvStream.GetRowCount: Integer;
 begin
-  FLock.LockList;
+  FModifs.Lock;
   try
     Result := FRowCount;
   finally
-    FLock.UnLockList;
+    FModifs.UnLock;
   end;
 end;
 
@@ -528,7 +551,7 @@ var
   RawLine: UTF8String;
   ch: AnsiChar;
 begin
-  FLock.LockList;
+  FModifs.Lock;
   try
     result := False;
     ch := #0;
@@ -546,47 +569,57 @@ begin
         Stream.Seek(-1, soCurrent) // unread it if not LF character.
     end
   finally
-    FLock.UnLockList;
+    FModifs.UnLock;
   end;
 end;
 
 procedure TCsvStream.SetColCount(aRow, Value: Int64);
 begin
-  FLock.LockList;
+  FModifs.Lock;
   try
     if length(FColCounts) < aRow + 1 then
       SetLength(FColCounts, aRow + 1);
     FColCounts[aRow] := Value;
   finally
-    FLock.UnLockList;
+    FModifs.UnLock;
   end;
 end;
 
 procedure TCsvStream.SetPosition(aRow, Value: Int64);
 begin
-  FLock.LockList;
+  FModifs.Lock;
   try
     if Length(FPositions) < aRow + 1 then
       SetLength(FPositions, aRow+1);
     FPositions[aRow] := Value;
   finally
-    FLock.UnLockList;
+    FModifs.UnLock;
   end;
 end;
 
 procedure TCsvStream.SetRowCount(Value: Int64);
 begin
-  FLock.LockList;
+  FModifs.Lock;
   try
     FRowCount := Value;
   finally
-    FLock.UnLockList;
+    FModifs.UnLock;
   end;
 end;
 
 procedure TCsvStream.ThreadTerminate(Sender: TObject);
 begin
   FCsvThreadRead := nil;
+end;
+
+procedure TCsvStream.DoNotifyerDoneSave;
+begin
+  FNotifyer(Self, 'Ready.', csReady, FCurLine);
+end;
+
+procedure TCsvStream.DoNotifyerSave;
+begin
+  FNotifyer(Self, 'Writing changes ...', csSaving, FCurLine);
 end;
 
 procedure TCsvStream.Flush(Sender : TObject);
@@ -596,10 +629,20 @@ var
   s : string;
   r : TRow;
 begin
+  if InFlush then
+    Exit;
+
   InFlush := True;
   try
     FModifs.Lock;
     try
+      FCurLine := 0;
+      {
+      if (Sender is TCsvThreadWrite) then
+        TCsvThreadWrite(Sender).Synchronize(@DoNotifyerSave)
+      else
+        FNotifyer(Self, 'Writing changes ...', csSaving, 0);
+      }
       Writer := TFileStream.Create(FFilename + '.tmp', fmCreate);
       try
         for i := 0 to RowCount - 1 do
@@ -612,24 +655,28 @@ begin
           SetLength(s, Length(s)-1);
           s := s +#13+#10;
           Writer.WriteBuffer(s[1],length(s));
-          if (i mod 50) = 0 then
-          begin
-            if not (Sender is TCsvThreadWrite) then
-              FNotifyer(Self, 'Writing changes ...', csSaving, i);
-          end;
+          FCurLine := i;
+          if (Sender is TCsvThreadWrite) then
+             if (i mod 50) = 0 then
+              TCsvThreadWrite(Sender).Synchronize(@DoNotifyerSave)
+            else
+              DoNotifyerSave;
         end;
       finally
         Writer.Free;
       end;
 
-      if  not (Sender is TCsvThreadWrite) then
-        FNotifyer(Self, 'Ready.', csReady, i);
+      if (Sender is TCsvThreadWrite) then
+        TCsvThreadWrite(Sender).Synchronize(@DoNotifyerDoneSave)
+      else
+        DoNotifyerDoneSave;
+
       FModifs.Clear;
       FCachedRows.Clear;
-      FStream.Free;
+      FreeAndNil(FStream);
       DeleteFile(FFilename);
       RenameFile(FFilename + '.tmp', FFilename);
-      FStream := TFileStream.Create(FFilename, fmOpenRead);
+      Open(FFilename);
     finally
       FModifs.Unlock;
     end;
@@ -644,19 +691,21 @@ var
   r : TRow;
   i : integer;
 begin
-  while InFlush do
-    Sleep(250);
+  FModifs.Lock;
+  try
+    SetLength(r, Length(aRow));
+    for i := Low(aRow) to High(aRow) do
+      r[i] := aRow[i];
 
-  SetLength(r, Length(aRow));
-  for i := Low(aRow) to High(aRow) do
-    r[i] := aRow[i];
-
-  FModifs.Add(r, RowCount);
-  Inc(FRowCount);
-  SetLength(FColCounts, Length(FColCounts)+1);
-  FColCounts[Length(FColCounts)-1] := Length(aRow);
-  if FModifs.Count > 500 then
-    Flush(nil);
+    FModifs.Add(r, RowCount);
+    Inc(FRowCount);
+    SetLength(FColCounts, Length(FColCounts)+1);
+    FColCounts[Length(FColCounts)-1] := Length(aRow);
+    if (FModifs.Count > 500) then
+      Flush(nil);
+  finally
+    FModifs.UnLock;
+  end;
     //if Assigned(FCsvThreadWrite) then
     //  FCsvThreadWrite.Resume;
 end;
@@ -688,10 +737,15 @@ end;
 
 procedure TCsvStream.AddCachedRow(aRow: TRow; Index: Integer);
 begin
-  if FCachedRows.Count >= 100 then
-    FCachedRows.Delete(0);
+  FModifs.Lock;
+  try
+    if FCachedRows.Count >= 100 then
+      FCachedRows.Delete(0);
 
-  FCachedRows.Add(Index, aRow);
+    FCachedRows.Add(Index, aRow);
+  finally
+    FModifs.UnLock;
+  end;
 end;
 
 function TCsvStream.GetCachedRow(aRow: Integer): TRow;
@@ -738,7 +792,7 @@ end;
 
 procedure TCsvThreadRead.DoNotyfier;
 begin
-  FNotifyer(Self, 'Analysing file ...', FState, FFile.RowCount);
+  FNotifyer(Self, ifthen(FState = csAnalyzing, 'Analyzing file ...', 'Ready.'), FState, FFile.RowCount);
 end;
 
 procedure TCsvThreadRead.Execute;
@@ -749,6 +803,7 @@ begin
   while not Terminated do
   try
     nb := 0;
+    Synchronize(@DoNotyfier);
     FFile.SetPosition(nb, FFile.Stream.Position);
     while FFile.ReadLine(s) do
     begin
@@ -890,20 +945,33 @@ end;
 
 { TCsvThreadWrite }
 
-constructor TCsvThreadWrite.Create(aFile: TCsvStream; aNotifyer : TCsvNotyfier = nil);
+constructor TCsvThreadWrite.Create(aFile: TCsvStream; AutoSaveInc : Integer = 0; aNotifyer : TCsvNotyfier = nil);
 begin
   FFile := aFile;
   FreeOnTerminate := True;
+  FAutoSaveInc := AutoSaveInc;
   FNotifyer := aNotifyer;
-  inherited Create(True);
+  inherited Create(False);
 end;
 
 procedure TCsvThreadWrite.Execute;
+var
+  LastCheck : TDateTime;
 begin
+  LastCheck := now;
   while not Terminated do
   begin
-    FFile.Flush(Self);
-    Suspend;
+    if FFile.Modified and (FAutoSaveInc > 0) then
+    begin
+      if (MinutesBetween(now, LastCheck) >= FAutoSaveInc) then
+      begin
+        LastCheck := now;
+        FFile.Flush(Self);
+      end;
+    end
+    else
+      Sleep(500);
+    //Suspend;
   end;
 end;
 

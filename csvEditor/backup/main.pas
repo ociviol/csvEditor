@@ -13,20 +13,20 @@ type
   { TFrmMain }
 
   TFrmMain = class(TForm)
+    ActionAutoSave: TAction;
     ActionAddCol: TAction;
     ActionAddRow: TAction;
     ActionSave: TAction;
     ActionOpen: TAction;
     ActionList1: TActionList;
+    cbAutoSave: TCheckBox;
     edValue: TEdit;
     ImageList1: TImageList;
-    Label1: TLabel;
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
     OpenDialog1: TOpenDialog;
+    Panel1: TPanel;
     PopupMenu1: TPopupMenu;
-    rbWindows: TRadioButton;
-    rbLinux: TRadioButton;
     StatusBar1: TStatusBar;
     StringGrid1: TStringGrid;
     ToolBar1: TToolBar;
@@ -34,8 +34,10 @@ type
     ToolButton2: TToolButton;
     ToolButton3: TToolButton;
     ToolButton4: TToolButton;
+    tbAutoSave: TTrackBar;
     procedure ActionAddColExecute(Sender: TObject);
     procedure ActionAddRowExecute(Sender: TObject);
+    procedure ActionAutoSaveExecute(Sender: TObject);
     procedure ActionOpenExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
     procedure edValueExit(Sender: TObject);
@@ -45,6 +47,8 @@ type
     procedure StringGrid1DrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
     procedure StringGrid1EditingDone(Sender: TObject);
+    procedure StringGrid1GetCellHint(Sender: TObject; ACol, ARow: Integer;
+      var HintText: String);
     procedure StringGrid1GetEditText(Sender: TObject; ACol, ARow: Integer;
       var Value: string);
     procedure StringGrid1SelectCell(Sender: TObject; aCol, aRow: Integer;
@@ -85,14 +89,19 @@ end;
 procedure TFrmMain.StringGrid1DrawCell(Sender: TObject; aCol, aRow: Integer;
   aRect: TRect; aState: TGridDrawState);
 var
-  i : integer;
+  x, y : integer;
+  s : string;
 begin
   with StringGrid1 do
   begin
-    if ColCount < aCol + 1 then
-      ColCount := aCol + 1;
+    //if ColCount < aCol + 2 then
+    //  ColCount := aCol + 2;
+
     with Canvas do
     begin
+      if (aCol = 0) or (aRow = 0) then
+        Brush.Color:=clLtGray
+      else
       if gdSelected in aState then
         Brush.Color:=clLime
       else
@@ -103,10 +112,27 @@ begin
       if gdFocused in aState then
         DrawFocusRect(aRect);
 
+      if (aCol = 0) and (aRow = 0) then
+        exit
+      else
+      if (aCol = 0) or (aRow = 0) then
+      begin
+        if aCol = 0 then
+          s := IntToStr(aRow)
+        else
+        if aRow = 0 then
+          s := Chr(65 + (aCol - 1));
+
+        y := ((aRect.Bottom - aRect.Top) - TextHeight(s)) div 2;
+        x := ((aRect.Right - aRect.Left) - TextWidth(s)) div 2;
+        TextOut(aRect.Left + x, aRect.Top + y, s);
+      end
+      else
       if Assigned (FStream) then
       begin
-        i := ((aRect.Bottom - aRect.Top) - TextHeight(FStream.CellAsString[aRow, aCol])) div 2;
-        TextOut(aRect.Left, aRect.Top + i, FStream.CellAsString[aRow, aCol]);
+        s := FStream.CellAsString[aRow-1, aCol-1];
+        y := ((aRect.Bottom - aRect.Top) - TextHeight(s)) div 2;
+        TextOut(aRect.Left, aRect.Top + y, s);
       end;
     end;
   end;
@@ -114,28 +140,37 @@ end;
 
 procedure TFrmMain.StringGrid1EditingDone(Sender: TObject);
 begin
-  //FStream.CellAsString[aRow, aCol];
+  //FStream.CellAsString[arow - 1, acol - 1];
+end;
+
+procedure TFrmMain.StringGrid1GetCellHint(Sender: TObject; ACol, ARow: Integer;
+  var HintText: String);
+begin
+  if Assigned(FStream) and (aCol > 0) and (aRow > 0) then
+    HintText := FStream.CellAsString[arow - 1, acol - 1];
 end;
 
 procedure TFrmMain.StringGrid1GetEditText(Sender: TObject; ACol, ARow: Integer;
   var Value: string);
 begin
-  Value := FStream.CellAsString[aRow, aCol];
+  if Assigned(FStream) and (aCol > 0) and (aRow > 0) then
+    Value := FStream.CellAsString[arow - 1, acol - 1];
 end;
 
 procedure TFrmMain.StringGrid1SelectCell(Sender: TObject; aCol, aRow: Integer;
   var CanSelect: Boolean);
 begin
-  if Assigned(FStream) then
-    edValue.Text := FStream.CellAsString[aRow, aCol];
+  CanSelect := (aCol > 0) and (aRow > 0);
+  if Assigned(FStream) and CanSelect then
+    edValue.Text := FStream.CellAsString[arow - 1, acol - 1];
 end;
 
 procedure TFrmMain.StringGrid1SetEditText(Sender: TObject; ACol, ARow: Integer;
   const Value: string);
 begin
   with FStream do
-    if CellAsString[aRow, aCol] <> Value then
-      CellAsString[aRow, aCol] := Value;
+    if CellAsString[arow - 1, acol - 1] <> Value then
+      CellAsString[arow - 1, acol - 1] := Value;
   EnableActions;
 end;
 
@@ -145,7 +180,8 @@ begin
     if Execute then
     begin
       FreeAndNil(FStream);
-      FStream := TCsvStream.Create(Filename, False, @Notifyer);
+      FStream := TCsvStream.Create(Filename, @Notifyer);
+      FStream.AutoSaveInc := tbAutoSave.Position;
       EnableActions;
     end;
 end;
@@ -164,6 +200,11 @@ begin
       AddRow(s);
     end;
   EnableActions;
+end;
+
+procedure TFrmMain.ActionAutoSaveExecute(Sender: TObject);
+begin
+  FStream.AutoSaveInc := tbAutoSave.Position;
 end;
 
 procedure TFrmMain.ActionAddColExecute(Sender: TObject);
@@ -204,27 +245,31 @@ end;
 
 procedure TFrmMain.Notifyer(Sender: TObject; const Msg: string; State: TCsvState; nbRows : Integer);
 begin
-  case State of
-    csReady :
-      begin
-        StatusBar1.Panels[0].Text := 'Ready.';
-        StringGrid1.Options := StringGrid1.Options + [goEditing];
-      end;
-
-    csSaving,
-    csAnalyzing :
-      begin
-        StringGrid1.Options := StringGrid1.Options - [goEditing];
-        StatusBar1.Panels[0].Text := Msg;
-      end;
-  end;
-
-  with StatusBar1, FStream do
+  with StatusBar1 do
   begin
+    Panels[0].Text := Msg;
+
+    case State of
+      csReady :
+        begin
+          Panels[0].Text := 'Ready.';
+          StringGrid1.Options := StringGrid1.Options + [goEditing];
+          Panels[2].Text := 'ColCount: ' + IntToStr(FStream.ColCounts[0]);
+          SizeGrid;
+          StringGrid1.AutoSizeColumn(0);
+        end;
+
+      csSaving,
+      csAnalyzing :
+        begin
+          StringGrid1.Options := StringGrid1.Options - [goEditing];
+        end;
+    end;
+
     Panels[1].Text := 'RowCount: ' + IntToStr(nbRows);
-    Panels[2].Text := 'ColCount: ' + IntToStr(ColCounts[0]);
     Refresh;
-    SizeGrid;
+    if State = csAnalyzing then
+      SizeGrid;
   end;
 end;
 
@@ -240,9 +285,8 @@ procedure TFrmMain.SizeGrid;
 begin
   with StringGrid1 do
   begin
-    ColCount:=FStream.MaxColCount;
-    RowCount := FStream.RowCount;
-    //Invalidate;
+    ColCount:=FStream.MaxColCount + 1;
+    RowCount := FStream.RowCount + 1;
   end;
 end;
 
