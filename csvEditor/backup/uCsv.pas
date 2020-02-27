@@ -26,7 +26,7 @@ type
 
   TCsvStream = class(TObject)
   private
-    FStream : TFileStream;
+    FStream : TStream;
     FColCounts : Array of Integer;
     FPositions : array of Int64;
     FRowCount,
@@ -69,7 +69,7 @@ type
     function ReadLine(var Line: string): boolean;
     function CountCols(aLine : String):TRow;
     procedure Flush(Sender : TObject);
-    property Stream:TFileStream read FStream;
+    property Stream:TStream read FStream;
   public
     constructor Create(const Filename : String; SaveOnFree : Boolean = False; aNotifyer : TCsvNotyfier = nil);
     destructor Destroy; override;
@@ -172,7 +172,7 @@ var
 begin
   for i := 0 to Count - 1 do
   begin
-    o := TCacheObj(Items[aRow]);
+    o := TCacheObj(Items[i]);
     if o.Index = aRow then
     begin
       result := o;
@@ -325,10 +325,36 @@ begin
 end;
 
 procedure TCsvStream.Open(const aFilename : string);
+var
+  MemMgr : TMemoryManager;
+  st : THeapStatus;
+  v : Cardinal;
+
+  function GetFileSize : Int64;
+  var
+  sr : TSearchRec;
+  begin
+    if FindFirst(afileName, faAnyFile, sr ) = 0 then
+      result := Int64(sr.FindData.nFileSizeHigh) shl Int64(32) + Int64(sr.FindData.nFileSizeLow)
+    else
+      result := -1;
+    FindClose(sr);
+  end;
 begin
+  GetMemoryManager(MemMgr);
+  //if MemMgr.NeedLock;
+  st := GetHeapStatus;
+  v := st.TotalAddrSpace - st.TotalAllocated;
   if FileExists(afilename) then
   begin
-    FStream := TFileStream.Create(aFilename, fmOpenRead);
+    if GetFileSize < v div 6 then
+    begin
+      FStream := TMemoryStream.Create;
+      FStream.LoadFromFile(aFilename);
+      FStream.Position := 0;
+    end
+    else
+      FStream := TFileStream.Create(aFilename, fmOpenRead);
     FCsvThreadRead := TCsvThreadRead.Create(Self, FNotifyer);
   end
   else
