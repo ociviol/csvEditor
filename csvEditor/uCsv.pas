@@ -36,7 +36,6 @@ type
     FSeparator : String;
     FCachedRows : TCacheObjList; //TCacheObj;
     FModifs : TModif;
-    FInMemory,
     InFlush : Boolean;
     FFilename : string;
     FCurLine: Integer;
@@ -324,35 +323,10 @@ begin
 end;
 
 procedure TCsvStream.Open(const aFilename : string);
-var
-  st : THeapStatus;
-  v : Cardinal;
-
-  function GetFileSize : Int64;
-  var
-  sr : TSearchRec;
-  begin
-    if FindFirst(afileName, faAnyFile, sr ) = 0 then
-      result := Int64(sr.FindData.nFileSizeHigh) shl Int64(32) + Int64(sr.FindData.nFileSizeLow)
-    else
-      result := -1;
-    FindClose(sr);
-  end;
 begin
-  FInMemory := False;
-  st := GetHeapStatus;
-  v := st.TotalAddrSpace - st.TotalAllocated;
   if FileExists(afilename) then
   begin
-    if GetFileSize < (v div 10) then
-    begin
-      FInMemory := True;
-      FStream := TMemoryStream.Create;
-      TMemoryStream(FStream).LoadFromFile(aFilename);
-      FStream.Position := 0;
-    end
-    else
-      FStream := TFileStream.Create(aFilename, fmOpenRead);
+    FStream := TFileStream.Create(aFilename, fmOpenRead);
     FCsvThreadRead := TCsvThreadRead.Create(Self, FNotifyer);
   end
   else
@@ -701,9 +675,6 @@ end;
 
 procedure TCsvStream.AddCachedRow(aRow: TRow; Index: Integer);
 begin
-  if FInMemory then
-    Exit;
-
   FModifs.Lock;
   try
     if FCachedRows.Count >= 100 then
@@ -792,6 +763,7 @@ begin
         Synchronize(@DoNotyfier);
         Sleep(50);
       end;
+      Sleep(5);
     end;
     Terminate;
     FState := csReady;

@@ -24,7 +24,6 @@ type
     ActionSave: TAction;
     ActionOpen: TAction;
     ActionList1: TActionList;
-    cbAutoSave: TCheckBox;
     edPosition: TEdit;
     edValue: TEdit;
     ImageList1: TImageList;
@@ -37,14 +36,12 @@ type
     MenuItem7: TMenuItem;
     MenuItem8: TMenuItem;
     OpenDialog1: TOpenDialog;
-    Panel1: TPanel;
     Panel2: TPanel;
     PopupMenuCols: TPopupMenu;
     PopupMenuRows: TPopupMenu;
     PopupMenuCells: TPopupMenu;
     StatusBar1: TStatusBar;
     StringGrid1: TStringGrid;
-    tbAutoSave: TTrackBar;
     ToolBar1: TToolBar;
     ToolButton1: TToolButton;
     ToolButton2: TToolButton;
@@ -52,7 +49,9 @@ type
     ToolButton4: TToolButton;
     procedure ActionAddColExecute(Sender: TObject);
     procedure ActionAddRowExecute(Sender: TObject);
+    procedure ActionCopyExecute(Sender: TObject);
     procedure ActionOpenExecute(Sender: TObject);
+    procedure ActionPasteExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
     procedure edValueExit(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
@@ -87,6 +86,9 @@ var
 implementation
 
 {$R *.lfm}
+
+uses
+  Clipbrd;
 
 { TFrmMain }
 
@@ -268,6 +270,32 @@ begin
   EnableActions;
 end;
 
+procedure TFrmMain.ActionCopyExecute(Sender: TObject);
+var
+  r : TRect;
+  x, y : integer;
+  s : string;
+begin
+  if StringGrid1.SelectedRangeCount > 0 then
+  begin
+    r := StringGrid1.SelectedRange[0];
+    s := '';
+    for y := r.Top to r.Bottom do
+    begin
+      for x := r.Left to r.Right do
+        s := s + '"' + FStream.CellAsString[y - 1, x - 1] + '";';
+      SetLength(s, Length(s)-1);
+      s := s +#13+#10;
+    end;
+    Clipboard.AsText := s;
+  end;
+end;
+
+procedure TFrmMain.ActionPasteExecute(Sender: TObject);
+begin
+  edValue.PasteFromClipboard;
+end;
+
 procedure TFrmMain.ActionAddColExecute(Sender: TObject);
 begin
   with FStream do
@@ -341,7 +369,7 @@ begin
   ActionOpen.Enabled := True;
   ActionSave.Enabled := Assigned(FStream) and FStream.Modified;
 
-  ActionPaste.Enabled := Assigned(FStream);
+  ActionPaste.Enabled := Assigned(FStream) and Clipboard.HasFormat(CF_TEXT);
   ActionCopy.Enabled := Assigned(FStream);
   ActionDelCol.Enabled := Assigned(FStream);
   ActionInsertCol.Enabled := Assigned(FStream);
