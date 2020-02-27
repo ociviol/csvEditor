@@ -18,14 +18,12 @@ type
     ActionDelCol: TAction;
     ActionInsertCol: TAction;
     ActionInsertRow: TAction;
-    ActionAutoSave: TAction;
     ActionAddCol: TAction;
     ActionAddRow: TAction;
     ActionDelRow: TAction;
     ActionSave: TAction;
     ActionOpen: TAction;
     ActionList1: TActionList;
-    cbAutoSave: TCheckBox;
     edPosition: TEdit;
     edValue: TEdit;
     ImageList1: TImageList;
@@ -38,14 +36,12 @@ type
     MenuItem7: TMenuItem;
     MenuItem8: TMenuItem;
     OpenDialog1: TOpenDialog;
-    Panel1: TPanel;
     Panel2: TPanel;
     PopupMenuCols: TPopupMenu;
     PopupMenuRows: TPopupMenu;
     PopupMenuCells: TPopupMenu;
     StatusBar1: TStatusBar;
     StringGrid1: TStringGrid;
-    tbAutoSave: TTrackBar;
     ToolBar1: TToolBar;
     ToolButton1: TToolButton;
     ToolButton2: TToolButton;
@@ -53,10 +49,8 @@ type
     ToolButton4: TToolButton;
     procedure ActionAddColExecute(Sender: TObject);
     procedure ActionAddRowExecute(Sender: TObject);
-    procedure ActionAutoSaveExecute(Sender: TObject);
     procedure ActionOpenExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
-    procedure cbAutoSaveChange(Sender: TObject);
     procedure edValueExit(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
@@ -251,8 +245,6 @@ begin
     begin
       FreeAndNil(FStream);
       FStream := TCsvStream.Create(Filename, @Notifyer);
-      if cbAutoSave.Checked then
-         FStream.AutoSaveInc := tbAutoSave.Position;
       EnableActions;
     end;
 end;
@@ -273,15 +265,6 @@ begin
   EnableActions;
 end;
 
-procedure TFrmMain.ActionAutoSaveExecute(Sender: TObject);
-begin
-  If Assigned(FStream) then
-    if cbAutoSave.Checked then
-      FStream.AutoSaveInc := tbAutoSave.Position
-    else
-      FStream.AutoSaveInc := 0;
-end;
-
 procedure TFrmMain.ActionAddColExecute(Sender: TObject);
 begin
   with FStream do
@@ -298,11 +281,6 @@ begin
   finally
     Screen.Cursor := crDefault;
   end;
-end;
-
-procedure TFrmMain.cbAutoSaveChange(Sender: TObject);
-begin
-  tbAutoSave.Enabled := cbAutoSave.Checked;
 end;
 
 procedure TFrmMain.edValueExit(Sender: TObject);
@@ -365,7 +343,6 @@ begin
   ActionDelCol.Enabled := Assigned(FStream);
   ActionInsertCol.Enabled := Assigned(FStream);
   ActionInsertRow.Enabled := Assigned(FStream);
-  ActionAutoSave.Enabled := Assigned(FStream);
   ActionAddCol.Enabled := Assigned(FStream);
   ActionAddRow.Enabled := Assigned(FStream);
   ActionDelRow.Enabled := Assigned(FStream);

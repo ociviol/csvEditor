@@ -79,16 +79,16 @@ object FrmMain: TFrmMain
       Left = 55
       Height = 22
       Top = 2
-      Width = 231
+      Width = 489
       Caption = 'Panel2'
       ClientHeight = 22
-      ClientWidth = 231
+      ClientWidth = 489
       TabOrder = 0
       object edValue: TEdit
         Left = 35
         Height = 20
         Top = 1
-        Width = 195
+        Width = 453
         Align = alClient
         OnExit = edValueExit
         TabOrder = 0
@@ -105,44 +105,11 @@ object FrmMain: TFrmMain
       end
     end
     object ToolButton4: TToolButton
-      Left = 471
+      Left = 544
       Height = 22
       Top = 2
       Caption = 'ToolButton4'
       Style = tbsSeparator
-    end
-    object Panel1: TPanel
-      Left = 286
-      Height = 22
-      Top = 2
-      Width = 185
-      BevelOuter = bvNone
-      ClientHeight = 22
-      ClientWidth = 185
-      TabOrder = 1
-      object cbAutoSave: TCheckBox
-        Left = 0
-        Height = 22
-        Top = 0
-        Width = 73
-        Action = ActionAutoSave
-        Align = alLeft
-        OnChange = cbAutoSaveChange
-        TabOrder = 0
-      end
-      object tbAutoSave: TTrackBar
-        Left = 73
-        Height = 22
-        Hint = 'AutoSave Interval in Minutes'
-        Top = 0
-        Width = 112
-        Frequency = 5
-        Max = 30
-        Position = 5
-        Align = alClient
-        Enabled = False
-        TabOrder = 1
-      end
     end
   end
   object ActionList1: TActionList
@@ -169,10 +136,6 @@ object FrmMain: TFrmMain
       Caption = 'Add Column'
       Hint = 'Add a column'
       OnExecute = ActionAddColExecute
-    end
-    object ActionAutoSave: TAction
-      Caption = 'Auto Save'
-      OnExecute = ActionAutoSaveExecute
     end
     object ActionDelRow: TAction
       Caption = 'Delete Row'

@@ -125,9 +125,8 @@ object FrmMain: TFrmMain
         Height = 22
         Top = 0
         Width = 73
-        Action = ActionAutoSave
         Align = alLeft
-        OnChange = cbAutoSaveChange
+        Caption = 'Auto Save'
         TabOrder = 0
       end
       object tbAutoSave: TTrackBar
@@ -169,10 +168,6 @@ object FrmMain: TFrmMain
       Caption = 'Add Column'
       Hint = 'Add a column'
       OnExecute = ActionAddColExecute
-    end
-    object ActionAutoSave: TAction
-      Caption = 'Auto Save'
-      OnExecute = ActionAutoSaveExecute
     end
     object ActionDelRow: TAction
       Caption = 'Delete Row'
