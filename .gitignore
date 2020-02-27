@@ -67,3 +67,7 @@ __recovery/
 
 # Boss dependency manager vendor folder https://github.com/HashLoad/boss
 modules/
+csvEditor/lib/x86_64-win64/csvEditorWin.res
+*.compiled
+*.obj
+*.ppu
