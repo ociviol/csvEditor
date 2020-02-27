@@ -20,14 +20,14 @@ object FrmMain: TFrmMain
     ColCount = 2
     DefaultColWidth = 100
     DefaultDrawing = False
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goRowSizing, goColSizing, goThumbTracking, goDblClickAutoSize, goSmoothScroll, goSelectionActive, goCellHints, goRowHighlight]
-    PopupMenu = PopupMenu1
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goRowSizing, goColSizing, goEditing, goThumbTracking, goDblClickAutoSize, goSmoothScroll, goSelectionActive, goCellHints, goRowHighlight]
     RowCount = 1
     TabOrder = 0
     OnDrawCell = StringGrid1DrawCell
     OnEditingDone = StringGrid1EditingDone
     OnGetCellHint = StringGrid1GetCellHint
     OnGetEditText = StringGrid1GetEditText
+    OnMouseDown = StringGrid1MouseDown
     OnSelectCell = StringGrid1SelectCell
     OnSetEditText = StringGrid1SetEditText
   end
@@ -146,8 +146,8 @@ object FrmMain: TFrmMain
     end
   end
   object ActionList1: TActionList
-    left = 248
-    top = 232
+    left = 208
+    top = 216
     object ActionOpen: TAction
       Caption = 'Open'
       Hint = 'Open File'
@@ -166,13 +166,31 @@ object FrmMain: TFrmMain
       OnExecute = ActionAddRowExecute
     end
     object ActionAddCol: TAction
-      Caption = 'Add Col'
+      Caption = 'Add Column'
       Hint = 'Add a column'
       OnExecute = ActionAddColExecute
     end
     object ActionAutoSave: TAction
       Caption = 'Auto Save'
       OnExecute = ActionAutoSaveExecute
+    end
+    object ActionDelRow: TAction
+      Caption = 'Delete Row'
+    end
+    object ActionInsertRow: TAction
+      Caption = 'Insert Row'
+    end
+    object ActionInsertCol: TAction
+      Caption = 'Insert Column'
+    end
+    object ActionDelCol: TAction
+      Caption = 'Delete Column'
+    end
+    object ActionCopy: TAction
+      Caption = 'Copy'
+    end
+    object ActionPaste: TAction
+      Caption = 'Paste'
     end
   end
   object ImageList1: TImageList
@@ -253,14 +271,43 @@ object FrmMain: TFrmMain
     left = 96
     top = 128
   end
-  object PopupMenu1: TPopupMenu
-    left = 216
-    top = 168
+  object PopupMenuCells: TPopupMenu
+    OnPopup = PopupMenuPopup
+    left = 240
+    top = 104
     object MenuItem1: TMenuItem
-      Action = ActionAddRow
+      Action = ActionCopy
     end
     object MenuItem2: TMenuItem
+      Action = ActionPaste
+    end
+  end
+  object PopupMenuCols: TPopupMenu
+    OnPopup = PopupMenuPopup
+    left = 118
+    top = 74
+    object MenuItem3: TMenuItem
+      Action = ActionDelCol
+    end
+    object MenuItem4: TMenuItem
+      Action = ActionInsertCol
+    end
+    object MenuItem5: TMenuItem
       Action = ActionAddCol
+    end
+  end
+  object PopupMenuRows: TPopupMenu
+    OnPopup = PopupMenuPopup
+    left = 388
+    top = 93
+    object MenuItem6: TMenuItem
+      Action = ActionDelRow
+    end
+    object MenuItem7: TMenuItem
+      Action = ActionInsertRow
+    end
+    object MenuItem8: TMenuItem
+      Action = ActionAddRow
     end
   end
 end

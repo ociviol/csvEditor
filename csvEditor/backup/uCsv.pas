@@ -228,9 +228,20 @@ begin
 end;
 
 procedure TCacheObjList.Delete(aRow: Integer);
+var
+  i : integer;
+  o : TCacheObj;
 begin
-  TCacheObj(Items[aRow]).Free;
-  inherited Delete(aRow);
+  for i := 0 to Count - 1 do
+  begin
+    o := TCacheObj(Items[i]);
+    if o.Index = aRow then
+    begin
+       o.Free;
+      inherited Delete(i);
+      break;
+    end;
+  end;
 end;
 
 
@@ -470,11 +481,11 @@ begin
       FCsvThreadWrite := TCsvThreadWrite.Create(Self, FAutoSaveInc, FNotifyer);
   end
   else
-    if Assigned(FCsvThreadWrite) then
-    begin
-      FCsvThreadWrite.Terminate;
-      FCsvThreadWrite := nil;
-    end;
+  if Assigned(FCsvThreadWrite) then
+  begin
+    FCsvThreadWrite.Terminate;
+    FCsvThreadWrite := nil;
+  end;
 end;
 
 function TCsvStream.GetAutoSaveInc: Integer;
@@ -638,6 +649,7 @@ end;
 procedure TCsvStream.Flush(Sender : TObject);
 var
   Writer: TFileStream;
+  Tm : TMemoryStream;
   i, j : Integer;
   s : string;
   r : TRow;
@@ -659,20 +671,39 @@ begin
 
       Writer := TFileStream.Create(FFilename + '.tmp', fmCreate);
       try
-        for i := 0 to RowCount - 1 do
-        begin
-          r := GetRow(i);
-          SetPosition(i, Writer.Position);
-          s := '';
-          for j := Low(r) to High(r) do
-            s := s + '"' + r[j] + '"' + FSeparator;
-          SetLength(s, Length(s)-1);
-          s := s +#13+#10;
-          Writer.WriteBuffer(s[1],length(s));
-          FCurLine := i;
-          if not (Sender is TCsvThreadWrite) then
-            if (i mod 50) = 0 then
-              DoNotifyerSave;
+        Tm := TMemoryStream.Create;
+        try
+          for i := 0 to RowCount - 1 do
+          begin
+            r := GetRow(i);
+            SetPosition(i, Writer.Position + tm.Position);
+            s := '';
+            for j := Low(r) to High(r) do
+              s := s + '"' + r[j] + '"' + FSeparator;
+            SetLength(s, Length(s)-1);
+            s := s +#13+#10;
+            Tm.WriteBuffer(s[1],length(s));
+            FCurLine := i;
+            if not (Sender is TCsvThreadWrite) then
+              if (i mod 50) = 0 then
+                DoNotifyerSave;
+            // flush
+            if Tm.Size > 1024 * 1024 then
+            begin
+              Tm.Position := 0;
+              Writer.CopyFrom(Tm, Tm.Size);
+              Tm.Clear;
+            end;
+          end;
+
+          if Tm.Size > 0 then
+          begin
+            Tm.Position := 0;
+            Writer.CopyFrom(Tm, Tm.Size);
+            Tm.Clear;
+          end;
+        finally
+          tm.Free;
         end;
       finally
         Writer.Free;
@@ -847,8 +878,9 @@ begin
       if (nb mod 50) = 0 then
       begin
         Synchronize(@DoNotyfier);
-        Sleep(5);
+        Sleep(50);
       end;
+      Sleep(10);
     end;
     Terminate;
     FState := csReady;

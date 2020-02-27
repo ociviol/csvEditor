@@ -13,9 +13,15 @@ type
   { TFrmMain }
 
   TFrmMain = class(TForm)
+    ActionPaste: TAction;
+    ActionCopy: TAction;
+    ActionDelCol: TAction;
+    ActionInsertCol: TAction;
+    ActionInsertRow: TAction;
     ActionAutoSave: TAction;
     ActionAddCol: TAction;
     ActionAddRow: TAction;
+    ActionDelRow: TAction;
     ActionSave: TAction;
     ActionOpen: TAction;
     ActionList1: TActionList;
@@ -25,10 +31,18 @@ type
     ImageList1: TImageList;
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
+    MenuItem3: TMenuItem;
+    MenuItem4: TMenuItem;
+    MenuItem5: TMenuItem;
+    MenuItem6: TMenuItem;
+    MenuItem7: TMenuItem;
+    MenuItem8: TMenuItem;
     OpenDialog1: TOpenDialog;
     Panel1: TPanel;
     Panel2: TPanel;
-    PopupMenu1: TPopupMenu;
+    PopupMenuCols: TPopupMenu;
+    PopupMenuRows: TPopupMenu;
+    PopupMenuCells: TPopupMenu;
     StatusBar1: TStatusBar;
     StringGrid1: TStringGrid;
     tbAutoSave: TTrackBar;
@@ -47,6 +61,7 @@ type
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure PopupMenuPopup(Sender: TObject);
     procedure StringGrid1DrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
     procedure StringGrid1EditingDone(Sender: TObject);
@@ -54,6 +69,8 @@ type
       var HintText: String);
     procedure StringGrid1GetEditText(Sender: TObject; ACol, ARow: Integer;
       var Value: string);
+    procedure StringGrid1MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure StringGrid1SelectCell(Sender: TObject; aCol, aRow: Integer;
       var CanSelect: Boolean);
     procedure StringGrid1SetEditText(Sender: TObject; ACol, ARow: Integer;
@@ -81,6 +98,7 @@ begin
   FStream := nil;
   EnableActions;
   StatusBar1.Panels[0].Width := StatusBar1.Width - 240;
+  StringGrid1.ColWidths[0] := 50;
 end;
 
 procedure TFrmMain.FormDestroy(Sender: TObject);
@@ -89,19 +107,34 @@ begin
     FStream.Free;
 end;
 
+procedure TFrmMain.PopupMenuPopup(Sender: TObject);
+begin
+  EnableActions;
+end;
+
 procedure TFrmMain.StringGrid1DrawCell(Sender: TObject; aCol, aRow: Integer;
   aRect: TRect; aState: TGridDrawState);
 
   function GetRowHeader(V : integer):String;
   var
     st : integer;
+    vv : integer;
   begin
     result := '';
-    while v > 32 do
+    vv := -1;
+    while v >= 26 do
     begin
-      result := result + Chr(90);
-      v := v - 25
+      inc(vv);
+      dec(v, 26);
     end;
+    while vv >= 26 do
+    begin
+      result := result + 'A';
+      dec(vv, 26);
+    end;
+    if vv >= 0 then
+      result := result + Chr(65 + vv);
+
     result := result + Chr(65 + v);
   end;
 
@@ -169,6 +202,26 @@ procedure TFrmMain.StringGrid1GetEditText(Sender: TObject; ACol, ARow: Integer;
 begin
   if Assigned(FStream) and (aCol > 0) and (aRow > 0) then
     Value := FStream.CellAsString[arow - 1, acol - 1];
+end;
+
+procedure TFrmMain.StringGrid1MouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  aCol, aRow : longint;
+begin
+  if Button = mbRight then
+  begin
+    StringGrid1.MouseToCell(X, Y, aCol, aRow);
+    if aCol = 0 then
+      StringGrid1.PopupMenu := PopupMenuCols
+//      PopupMenuCols.PopUp(X, y)
+    else
+    if aRow = 0 then
+      StringGrid1.PopupMenu := PopupMenuRows
+      //PopupMenuRows.PopUp(X, Y)
+    else
+      StringGrid1.PopupMenu := PopupMenuCells;
+  end;
 end;
 
 procedure TFrmMain.StringGrid1SelectCell(Sender: TObject; aCol, aRow: Integer;
@@ -255,8 +308,8 @@ end;
 procedure TFrmMain.edValueExit(Sender: TObject);
 begin
   with StringGrid1, FStream do
-    if CellAsString[Row, Col] <> edValue.Text then
-      CellAsString[Row, Col] := edValue.Text;
+    if CellAsString[Row - 1, Col - 1] <> edValue.Text then
+      CellAsString[Row - 1 , Col - 1] := edValue.Text;
   EnableActions;
 end;
 
@@ -280,6 +333,7 @@ begin
   with StatusBar1 do
   begin
     Panels[0].Text := Msg;
+    Panels[1].Text := 'RowCount: ' + IntToStr(nbRows);
 
     case State of
       csReady :
@@ -288,29 +342,33 @@ begin
           StringGrid1.Options := StringGrid1.Options + [goEditing];
           Panels[2].Text := 'ColCount: ' + IntToStr(FStream.ColCounts[0]);
           SizeGrid;
-          StringGrid1.AutoSizeColumn(0);
         end;
 
-      csSaving,
+      csSaving:
+        StringGrid1.Options := StringGrid1.Options - [goEditing];
+
       csAnalyzing :
-        begin
-          StringGrid1.Options := StringGrid1.Options - [goEditing];
-        end;
+        SizeGrid;
     end;
 
-    Panels[1].Text := 'RowCount: ' + IntToStr(nbRows);
     Refresh;
-    if State = csAnalyzing then
-      SizeGrid;
   end;
 end;
 
 procedure TFrmMain.EnableActions;
 begin
-  ActionAddCol.Enabled := Assigned(FStream);
-  ActionAddRow.Enabled := Assigned(FStream);
   ActionOpen.Enabled := True;
   ActionSave.Enabled := Assigned(FStream) and FStream.Modified;
+
+  ActionPaste.Enabled := Assigned(FStream);
+  ActionCopy.Enabled := Assigned(FStream);
+  ActionDelCol.Enabled := Assigned(FStream);
+  ActionInsertCol.Enabled := Assigned(FStream);
+  ActionInsertRow.Enabled := Assigned(FStream);
+  ActionAutoSave.Enabled := Assigned(FStream);
+  ActionAddCol.Enabled := Assigned(FStream);
+  ActionAddRow.Enabled := Assigned(FStream);
+  ActionDelRow.Enabled := Assigned(FStream);
 end;
 
 procedure TFrmMain.SizeGrid;
