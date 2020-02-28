@@ -41,6 +41,7 @@ type
     FCurLine: Integer;
 
     function GetCacheSz: Integer;
+    function GetCellAsStringNoEval(aRow: Integer; aCol: Integer): String;
     function GetCellString(aRow: Integer; aCol: Integer): String;
     function GetCellVariant(aRow: Integer; aCol: Integer): Variant;
     function GetModified: Boolean;
@@ -54,6 +55,7 @@ type
     procedure Open(const aFilename : string);
     function GetState: TCsvState;
     procedure SetCellAsString(aRow: Integer; aCol: Integer; AValue: String);
+    function ExecFormula(Formula : String):Variant;
   protected
     FMaxColCount: Integer;
     procedure ThreadTerminate(Sender : TObject);
@@ -79,6 +81,7 @@ type
     property RowCount:Integer read GetRowCount;
     property CellAsVariant[aRow:Integer; aCol:Integer]:Variant read GetCellVariant;
     property CellAsString[aRow:Integer; aCol:Integer]:String read GetCellString write SetCellAsString;
+    property CellAsStringNoEval[aRow:Integer; aCol:Integer]:String read GetCellAsStringNoEval;
     property ReadState : TCsvState read GetState;
     property Modified:Boolean read GetModified;
     property CacheSz:Integer read GetCacheSz;
@@ -317,7 +320,200 @@ begin
   end;
 end;
 
+function TCsvStream.ExecFormula(Formula: String): Variant;
+const
+  CS_LETTERS = ['A'..'Z'];
+  CS_NUMBERS = ['0'..'9'];
+
+  function ColumnLetterToColumnIndex(const cell : String):Integer;
+  var
+    i : integer;
+  begin
+    Result := 0;
+
+    for i := 1 to Length(cell) do
+    begin
+      Result := Result * 26;
+      Inc(Result, ord(cell[i]) - ord('A'));
+    end;
+end;
+
+  function GetChar(var Line : String):String; inline;
+  begin
+    result := Line[1];
+    Line := Copy(Line, 2, Length(Line));
+  end;
+
+  function GetCellCol(Cell : String):Integer;
+  var
+    s : string;
+  begin
+    result := 0;
+    s := '';
+    while length(Cell) > 0 do
+    begin
+      if (Cell[1] in CS_LETTERS) then
+        s := s + GetChar(Cell)
+      else
+        break;
+    end;
+    result := ColumnLetterToColumnIndex(s);
+  end;
+
+  function GetCellRow(Cell : String):Integer;
+  var
+    s : String;
+  begin
+    result := 0;
+    s := '';
+    while length(Cell) > 0 do
+    begin
+      if (Cell[1] in CS_NUMBERS) then
+        s := s + GetChar(Cell)
+      else
+        Cell := Copy(Cell, 2, Length(Cell));
+    end;
+    result := StrToInt(s)-1;
+  end;
+
+  function GetCell:String;
+  begin
+    result := '';
+    while length(Formula) > 0 do
+    begin
+      if (Formula[1] in CS_LETTERS) or (Formula[1] in CS_NUMBERS) then
+        result := result + GetChar(Formula)
+      else
+        break;
+    end;
+  end;
+
+  function Eval(aCell : String):Variant;
+  var
+    row, col : string;
+
+    function ResolveCol:Integer;
+    var
+      i : integer;
+    begin
+      result := 0;
+      while length(col) > 0 do
+      begin
+        i := ord(col[length(col)]) - 26;
+        result := result + (ord(col[length(col)]) - 26);
+      end;
+    end;
+
+  begin
+    try
+      {
+    // get col
+    col := '';
+    while (length(Formula) > 0) and (Formula[1] in CS_LETTERS) do
+      col := col + GetChar;
+    // get row
+    row := '';
+    while (length(Formula) > 0) and (Formula[1] in CS_NUMBERS) do
+      row := row + GetChar;
+      }
+
+    except
+      result := '';
+    end;
+  end;
+
+  function MakePoint:TPoint;
+  var
+    c : String;
+  begin
+    c := GetCell;
+    Result.x := GetCellCol(c);
+    Result.y := GetCellRow(c);
+  end;
+
+  function doSum(pDeb, pEnd : TPoint):Variant;
+  var
+    x,y : integer;
+  begin
+    result := 0;
+    for y := pDeb.y to pEnd.y do
+      for x := pDeb.x to pEnd.x do
+        result := result + CellAsVariant[y, x];
+  end;
+
+  function GetStr(var Val : String; len : integer):String;
+  begin
+    result :=  Copy(Val, 1, len);
+    Val := Copy(Val, len, Length(Val));
+  end;
+
+var
+  c1, c2, s : String;
+  p1, p2 : TPoint;
+begin
+  s := '';
+  while length(Formula) > 0 do
+  try
+    if Copy(Formula, 1, 4) = 'SUM(' then
+    begin
+      s := 'SUM';
+      Formula := Copy(Formula, 4, Length(Formula));
+    end;
+
+    case Formula[1] of
+      '(':
+        begin
+          GetChar(Formula);
+          if s = 'SUM' then
+          begin
+            // Get range
+            p1 := MakePoint;
+            if Formula[1] <> ':' then
+              raise Exception.Create('Error in range, received: ''' + Formula[1] + ''' expected '':''');
+            GetChar(Formula);
+            p2 := MakePoint;
+            result := doSum(p1, p2);
+          end;
+        end;
+
+      'A'..'Z':
+        begin
+          c1 :=  GetCell;
+          p1.x := GetCellCol(c1);
+          p1.y := GetCellRow(c1);
+        end;
+
+      ':' :
+        begin
+          GetChar(Formula);
+          c2 :=  GetCell;
+          p2.x := GetCellCol(c1);
+          p2.y := GetCellRow(c1);
+        end;
+
+    else
+      s := s + GetChar(Formula);
+    end;
+
+  except
+    result := '#ERR';
+  end;
+
+end;
+
 function TCsvStream.GetCellString(aRow: Integer; aCol: Integer): String;
+begin
+  result := GetCellAsStringNoEval(aRow, aCol);
+  //if result[1] = '=' then
+  //  result := ExecFormula(copy(result, 2, length(result)))
+end;
+
+function TCsvStream.GetCacheSz: Integer;
+begin
+  result := FCachedRows.Count;
+end;
+
+function TCsvStream.GetCellAsStringNoEval(aRow: Integer; aCol: Integer): String;
 var
   r : TRow;
 begin
@@ -327,11 +523,6 @@ begin
   else
     result := '';
   SetLength(r, 0);
-end;
-
-function TCsvStream.GetCacheSz: Integer;
-begin
-  result := FCachedRows.Count;
 end;
 
 function TCsvStream.GetModifsSz: Integer;

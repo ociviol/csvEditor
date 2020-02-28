@@ -208,24 +208,19 @@ procedure TFrmMain.StringGrid1DrawCell(Sender: TObject; aCol, aRow: Integer;
 
   function GetRowHeader(V : integer):String;
   var
-    vv : integer;
+    adiv, amod : integer;
+    colLetter : string;
   begin
-    result := '';
-    vv := -1;
-    while v >= 26 do
+    adiv := V+1;
+    colLetter := '';
+    amod := 0;
+    while adiv > 0 do
     begin
-      inc(vv);
-      dec(v, 26);
+      amod := (adiv - 1) mod 26;
+      colLetter := Chr(65 + amod) + colLetter;
+      adiv := ((adiv - amod) div 26);
     end;
-    while vv >= 26 do
-    begin
-      result := result + 'A';
-      dec(vv, 26);
-    end;
-    if vv >= 0 then
-      result := result + Chr(65 + vv);
-
-    result := result + Chr(65 + v);
+    result := colLetter;
   end;
 
 var
@@ -287,7 +282,7 @@ procedure TFrmMain.StringGrid1GetEditText(Sender: TObject; ACol, ARow: Integer;
   var Value: string);
 begin
   if Assigned(FStream) and (aCol > 0) and (aRow > 0) then
-    Value := FStream.CellAsString[arow - 1, acol - 1];
+    Value := FStream.CellAsStringNoEval[arow - 1, acol - 1];
 end;
 
 procedure TFrmMain.StringGrid1MouseDown(Sender: TObject; Button: TMouseButton;
@@ -315,7 +310,7 @@ begin
   if Assigned(FStream) and CanSelect then
   begin
     edPosition.Text := Char(65 + (aCol - 1)) + IntToStr(aRow);
-    edValue.Text := FStream.CellAsString[arow - 1, acol - 1];
+    edValue.Text := FStream.CellAsStringNoEval[arow - 1, acol - 1];
   end;
 end;
 
@@ -352,7 +347,7 @@ begin
   if Assigned(FStream) and FStream.Modified then
     case MessageDlg('Save changes ?', mtInformation, mbYesNoCancel, 0) of
       mrYes:    FStream.Save;
-      MrCancel:  CanClose := False;
+      MrCancel:  exit;
     end;
 
   FreeAndNil(FStream);
