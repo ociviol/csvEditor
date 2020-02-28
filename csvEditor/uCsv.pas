@@ -74,9 +74,10 @@ type
     procedure DeleteRow(aRow : Integer);
     procedure AddRow(const aRow : Array of String); overload;
     procedure AddRow(const aLine : String); overload;
-    procedure Save;
+    procedure Save(const aFilename : String = '');
     procedure Cancel;
 
+    property Filename : String read FFilename;
     property ColCounts[Row:Integer]:Integer read GetColCount;
     property MaxColCount:Integer read FMaxColCount;
     property RowCount:Integer read GetRowCount;
@@ -263,17 +264,18 @@ end;
 
 procedure TCsvStream.Open(const aFilename : string);
 begin
-  if FileExists(afilename) then
-  begin
-    FStream := TFileStream.Create(aFilename, fmOpenRead);
-    FCsvThreadRead := TCsvThreadRead.Create(Self, FNotifyer);
-  end
-  else
-  begin
-    FStream := TFileStream.Create(aFilename, fmCreate);
-    if Assigned(FNotifyer) then
-      FNotifyer(Self, '', csReady, 0);
-  end;
+  if aFilename <> '' then
+    if FileExists(afilename) then
+    begin
+      FStream := TFileStream.Create(aFilename, fmOpenRead);
+      FCsvThreadRead := TCsvThreadRead.Create(Self, FNotifyer);
+    end
+    else
+    begin
+      FStream := TFileStream.Create(aFilename, fmCreate);
+      if Assigned(FNotifyer) then
+        FNotifyer(Self, '', csReady, 0);
+    end;
 end;
 
 procedure TCsvStream.Close(bFreePos : Boolean = True);
@@ -436,7 +438,9 @@ end;
 function TCsvStream.GetCellString(const aRow, aCol: Integer): String;
 begin
   result := GetCellAsStringNoEval(aRow, aCol);
-  if FSolveFormulas and (result[1] = '=') then
+  if FSolveFormulas and
+     (length(result) > 1) and
+     (result[1] = '=') then
     result := ExecFormula(copy(result, 2, length(result)))
 end;
 
@@ -701,6 +705,8 @@ begin
     Inc(FRowCount);
     SetLength(FColCounts, Length(FColCounts)+1);
     FColCounts[Length(FColCounts)-1] := Length(aRow);
+    if FMaxColCount < Length(aRow) then
+      FMaxColCount := Length(aRow);
     if (FModifs.Count > 500) then
       Flush(nil);
   finally
@@ -713,10 +719,14 @@ begin
   AddRow(CountCols(aLine));
 end;
 
-procedure TCsvStream.Save;
+procedure TCsvStream.Save(const aFilename: String = '');
 begin
+  if aFilename <> '' then
+    FFilename := aFilename;
+
   if Modified then
-    Flush(nil);
+    if (FFilename <> '') then
+      Flush(nil);
 end;
 
 procedure TCsvStream.Cancel;

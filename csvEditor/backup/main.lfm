@@ -148,7 +148,9 @@ object FrmMain: TFrmMain
         Width = 69
         Align = alRight
         Caption = 'Formulas'
+        Checked = True
         OnChange = cbFormulasChange
+        State = cbChecked
         TabOrder = 0
       end
     end

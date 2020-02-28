@@ -107,6 +107,7 @@ type
   private
     function GetConfigFilename: String;
     procedure Open(const aFilename : String);
+    procedure DoSave;
     procedure MenuRecentClick(Sender : TObject);
     procedure LoadRecentMenu;
   private
@@ -172,6 +173,9 @@ end;
 { TFrmMain }
 
 procedure TFrmMain.FormCreate(Sender: TObject);
+var
+  s : string;
+  x, y : integer;
 begin
   FConfig := TConfig(TConfig.Load(ConfigFilename, TConfig.Create));
   if FileExists(ConfigFilename) then
@@ -180,9 +184,21 @@ begin
   LoadRecentMenu;
 
   FStream := nil;
-  EnableActions;
   StatusBar1.Panels[0].Width := StatusBar1.Width - 240;
   StringGrid1.ColWidths[0] := 50;
+
+  FStream := TCsvStream.Create('', @Notifyer);
+  FStream.SolveFormulas := cbFormulas.Checked;
+  for y := 0 to 5 do
+  begin
+    s := '';
+    for x := 0 To 5 do
+      s := s + '"";';
+    SetLength(s, Length(s)-1);
+    FStream.AddRow(s);
+  end;
+  SizeGrid;
+  EnableActions;
 end;
 
 procedure TFrmMain.FormDestroy(Sender: TObject);
@@ -266,7 +282,7 @@ begin
       begin
         s := FStream.CellAsString[aRow-1, aCol-1];
         y := ((aRect.Bottom - aRect.Top) - TextHeight(s)) div 2;
-        TextOut(aRect.Left, aRect.Top + y, s);
+        TextOut(aRect.Left + 1, aRect.Top + y, s);
       end;
     end;
   end;
@@ -296,10 +312,10 @@ begin
   begin
     StringGrid1.MouseToCell(X, Y, aCol, aRow);
     if aCol = 0 then
-      StringGrid1.PopupMenu := PopupMenuCols
+      StringGrid1.PopupMenu := PopupMenuRows
     else
     if aRow = 0 then
-      StringGrid1.PopupMenu := PopupMenuRows
+      StringGrid1.PopupMenu := PopupMenuCols
     else
       StringGrid1.PopupMenu := PopupMenuCells;
   end;
@@ -339,6 +355,21 @@ begin
   result := IncludeTrailingPathDelimiter(GetAppConfigDir(False)) + 'config.json';
 end;
 
+procedure TFrmMain.DoSave;
+begin
+  if FStream.Filename = '' then
+    with TSaveDialog.Create(nil) do
+    try
+      DefaultExt := 'csv';
+      FileName := 'Unitiled.csv';
+
+      if Execute then
+        FStream.Save(Filename);
+    finally
+      Free;
+    end;
+end;
+
 procedure TFrmMain.Open(const aFilename : String);
 begin
   if Assigned(FStream) then
@@ -348,7 +379,7 @@ begin
 
   if Assigned(FStream) and FStream.Modified then
     case MessageDlg('Save changes ?', mtInformation, mbYesNoCancel, 0) of
-      mrYes:    FStream.Save;
+      mrYes:    DoSave;
       MrCancel:  exit;
     end;
 
@@ -448,7 +479,7 @@ begin
   if FStream.Modified then
   try
     Screen.Cursor := crHourglass;
-    FStream.Save;
+    DoSave;
   finally
     Screen.Cursor := crDefault;
   end;
@@ -481,7 +512,7 @@ begin
 
   if Assigned(FStream) and FStream.Modified then
     case MessageDlg('Save changes ?', mtInformation, mbYesNoCancel, 0) of
-      mrYes:    FStream.Save;
+      mrYes:    DoSave;
       MrCancel:  CanClose := False;
     end;
 end;
@@ -537,7 +568,7 @@ procedure TFrmMain.SizeGrid;
 begin
   with StringGrid1 do
   begin
-    ColCount:=FStream.MaxColCount + 1;
+    ColCount := FStream.MaxColCount + 1;
     RowCount := FStream.RowCount + 1;
   end;
 end;
