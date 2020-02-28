@@ -6,9 +6,34 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Grids, ExtCtrls,
-  Buttons, ComCtrls, ActnList, Menus, StdCtrls, uCsv, Types;
+  Buttons, ComCtrls, ActnList, Menus, StdCtrls, uCsv, Types, Utils.Json;
 
 type
+
+
+  { TConfig }
+
+  TConfig = Class(TJsonObject)
+  private
+    FBottom: Integer;
+    FLeft: Integer;
+    FRight: Integer;
+    FTop: Integer;
+    FRecent : TStringlist;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function GetBoundsRect:Trect;
+    procedure SetBoundsRect(const Value : Trect);
+    procedure AddRecent(const aFilename : String);
+  published
+    property Left : Integer read FLeft write FLeft;
+    property Top : Integer read FTop write FTop;
+    property Right : Integer read FRight write FRight;
+    property Bottom : Integer read FBottom write FBottom;
+    property Recent : TStringlist read FRecent write FRecent;
+  end;
 
   { TFrmMain }
 
@@ -27,6 +52,8 @@ type
     edPosition: TEdit;
     edValue: TEdit;
     ImageList1: TImageList;
+    lblCached: TLabel;
+    lblModifs: TLabel;
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
@@ -36,12 +63,15 @@ type
     MenuItem7: TMenuItem;
     MenuItem8: TMenuItem;
     OpenDialog1: TOpenDialog;
-    Panel2: TPanel;
+    pnlEdit: TPanel;
+    Panel3: TPanel;
+    PopupMenuRecent: TPopupMenu;
     PopupMenuCols: TPopupMenu;
     PopupMenuRows: TPopupMenu;
     PopupMenuCells: TPopupMenu;
     StatusBar1: TStatusBar;
     StringGrid1: TStringGrid;
+    Timer1: TTimer;
     ToolBar1: TToolBar;
     ToolButton1: TToolButton;
     ToolButton2: TToolButton;
@@ -57,10 +87,10 @@ type
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormResize(Sender: TObject);
     procedure PopupMenuPopup(Sender: TObject);
     procedure StringGrid1DrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
-    procedure StringGrid1EditingDone(Sender: TObject);
     procedure StringGrid1GetCellHint(Sender: TObject; ACol, ARow: Integer;
       var HintText: String);
     procedure StringGrid1GetEditText(Sender: TObject; ACol, ARow: Integer;
@@ -71,11 +101,19 @@ type
       var CanSelect: Boolean);
     procedure StringGrid1SetEditText(Sender: TObject; ACol, ARow: Integer;
       const Value: string);
+    procedure Timer1Timer(Sender: TObject);
+  private
+    function GetConfigFilename: String;
+    procedure Open(const aFilename : String);
+    procedure MenuRecentClick(Sender : TObject);
+    procedure LoadRecentMenu;
   private
     FStream : TCsvStream;
+    FConfig : TConfig;
     procedure Notifyer(Sender: TObject; const Msg: string; State: TCsvState; nbRows : Integer);
     procedure EnableActions;
     procedure SizeGrid;
+    property ConfigFilename : String read GetConfigFilename;
   public
 
   end;
@@ -90,10 +128,55 @@ implementation
 uses
   Clipbrd;
 
+{ TConfig }
+
+constructor TConfig.Create;
+begin
+  inherited Create;
+  FRecent := TStringlist.Create;
+end;
+
+destructor TConfig.Destroy;
+begin
+  FRecent.Free;
+  inherited Destroy;
+end;
+
+function TConfig.GetBoundsRect: Trect;
+begin
+  result := Rect(FLeft, FTop, FRight, FBottom);
+end;
+
+procedure TConfig.SetBoundsRect(const Value: Trect);
+begin
+  Fleft := Value.Left;
+  FTop := Value.Top;
+  FRight := Value.Right;
+  FBottom := Value.Bottom;
+end;
+
+procedure TConfig.AddRecent(const aFilename: String);
+begin
+  with FRecent do
+    if IndexOf(aFilename) < 0 then
+    begin
+      if Count > 10 then
+        Delete(0);
+      Add(aFilename);
+    end;
+end;
+
+
 { TFrmMain }
 
 procedure TFrmMain.FormCreate(Sender: TObject);
 begin
+  FConfig := TConfig(TConfig.Load(ConfigFilename, TConfig.Create));
+  if FileExists(ConfigFilename) then
+    BoundsRect := FConfig.GetBoundsRect;
+
+  LoadRecentMenu;
+
   FStream := nil;
   EnableActions;
   StatusBar1.Panels[0].Width := StatusBar1.Width - 240;
@@ -104,6 +187,15 @@ procedure TFrmMain.FormDestroy(Sender: TObject);
 begin
   if Assigned(FStream) then
     FStream.Free;
+  FConfig.SetBoundsRect(BoundsRect);
+  FConfig.Save(ConfigFilename);
+  FConfig.Free;
+end;
+
+procedure TFrmMain.FormResize(Sender: TObject);
+begin
+  StatusBar1.Panels[0].Width := ClientWidth div 2;
+  pnlEdit.Width := ClientWidth div 2;
 end;
 
 procedure TFrmMain.PopupMenuPopup(Sender: TObject);
@@ -116,7 +208,6 @@ procedure TFrmMain.StringGrid1DrawCell(Sender: TObject; aCol, aRow: Integer;
 
   function GetRowHeader(V : integer):String;
   var
-    st : integer;
     vv : integer;
   begin
     result := '';
@@ -184,10 +275,6 @@ begin
   end;
 end;
 
-procedure TFrmMain.StringGrid1EditingDone(Sender: TObject);
-begin
-  //FStream.CellAsString[arow - 1, acol - 1];
-end;
 
 procedure TFrmMain.StringGrid1GetCellHint(Sender: TObject; ACol, ARow: Integer;
   var HintText: String);
@@ -213,11 +300,9 @@ begin
     StringGrid1.MouseToCell(X, Y, aCol, aRow);
     if aCol = 0 then
       StringGrid1.PopupMenu := PopupMenuCols
-//      PopupMenuCols.PopUp(X, y)
     else
     if aRow = 0 then
       StringGrid1.PopupMenu := PopupMenuRows
-      //PopupMenuRows.PopUp(X, Y)
     else
       StringGrid1.PopupMenu := PopupMenuCells;
   end;
@@ -243,15 +328,69 @@ begin
   EnableActions;
 end;
 
+procedure TFrmMain.Timer1Timer(Sender: TObject);
+begin
+  if Assigned(FStream) then
+  begin
+    lblCached.Caption := 'Cached lines :' + IntToStr(FStream.CacheSz) + '  ';
+    lblModifs.Caption := 'Modifed lines:' + IntToStr(FStream.ModifsSz);
+  end;
+end;
+
+function TFrmMain.GetConfigFilename: String;
+begin
+  result := IncludeTrailingPathDelimiter(GetAppConfigDir(False)) + 'config.json';
+end;
+
+procedure TFrmMain.Open(const aFilename : String);
+begin
+  if Assigned(FStream) then
+    if FStream.ReadState = csAnalyzing then
+      FStream.Cancel;
+
+
+  if Assigned(FStream) and FStream.Modified then
+    case MessageDlg('Save changes ?', mtInformation, mbYesNoCancel, 0) of
+      mrYes:    FStream.Save;
+      MrCancel:  exit;
+    end;
+
+  FreeAndNil(FStream);
+  FConfig.AddRecent(aFilename);
+  LoadRecentMenu;
+  FStream := TCsvStream.Create(aFilename, @Notifyer);
+  EnableActions;
+end;
+
+procedure TFrmMain.MenuRecentClick(Sender: TObject);
+begin
+  Open(TmenuItem(Sender).Caption);
+end;
+
+procedure TFrmMain.LoadRecentMenu;
+var
+  i : integer;
+
+  procedure CreateMenuItem(const aCaption : String);
+  var
+    mn : TMenuItem;
+  begin
+    mn := TMenuItem.Create(PopupMenuRecent);
+    mn.Caption := aCaption;
+    mn.OnClick := @MenuRecentClick;
+    PopupMenuRecent.Items.Add(mn);
+  end;
+begin
+  PopupMenuRecent.Items.Clear;
+  for i := 0 to FConfig.Recent.Count - 1 do
+    CreateMenuItem(FConfig.Recent[i]);
+end;
+
 procedure TFrmMain.ActionOpenExecute(Sender: TObject);
 begin
   With OpenDialog1 do
     if Execute then
-    begin
-      FreeAndNil(FStream);
-      FStream := TCsvStream.Create(Filename, @Notifyer);
-      EnableActions;
-    end;
+      Open(Filename);
 end;
 
 procedure TFrmMain.ActionAddRowExecute(Sender: TObject);
@@ -345,13 +484,13 @@ begin
   begin
     Panels[0].Text := Msg;
     Panels[1].Text := 'RowCount: ' + IntToStr(nbRows);
+    Panels[2].Text := 'ColCount: ' + IntToStr(FStream.MaxColCount);
 
     case State of
       csReady :
         begin
           Panels[0].Text := 'Ready.';
           StringGrid1.Options := StringGrid1.Options + [goEditing];
-          Panels[2].Text := 'ColCount: ' + IntToStr(FStream.ColCounts[0]);
           SizeGrid;
         end;
 

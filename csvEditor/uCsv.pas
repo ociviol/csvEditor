@@ -40,11 +40,12 @@ type
     FFilename : string;
     FCurLine: Integer;
 
+    function GetCacheSz: Integer;
     function GetCellString(aRow: Integer; aCol: Integer): String;
     function GetCellVariant(aRow: Integer; aCol: Integer): Variant;
     function GetModified: Boolean;
+    function GetModifsSz: Integer;
     function IsInCache(aRow : Integer):TCacheObj;
-    procedure AddCachedRow(aRow : TRow; Index : Integer);
     function GetCachedRow(aRow : Integer):TRow;
     function GetColCount(aRow: Integer): Integer;
     function GetRowCount: Integer;
@@ -80,20 +81,25 @@ type
     property CellAsString[aRow:Integer; aCol:Integer]:String read GetCellString write SetCellAsString;
     property ReadState : TCsvState read GetState;
     property Modified:Boolean read GetModified;
+    property CacheSz:Integer read GetCacheSz;
+    property ModifsSz :Integer read GetModifsSz;
   end;
 
   { TCacheObjList }
 
-  TCacheObjList = Class(TList)
+  TCacheObjList = Class(TThreadList)
   private
+    function GetCount: Integer;
     function GetObj(aRow: int64):TCacheObj;
     function GetRow(aRow: int64): TRow;
     procedure SetRow(aRow: int64; const Value: TRow);
   public
-    procedure Clear; override;
-    procedure Add(Index : Integer; aRow : TRow);
+    destructor Destroy; override;
+    procedure Clear;
+    procedure Add(Index : Integer; const aRow : TRow);
     procedure Delete(aRow : Integer);
     property Row[aRow:int64]:TRow read GetRow write SetRow;
+    property Count : Integer read GetCount;
   end;
 
   TCacheObj = Class
@@ -102,7 +108,7 @@ type
     Index : Integer;
     RowData : TRow;
 
-    constructor Create(aIndex : Integer; aDAta : TRow);
+    constructor Create(aIndex : Integer; const aDAta : TRow);
   end;
 
   TCsvThreadRead = class(TThread)
@@ -150,75 +156,6 @@ implementation
 
 uses
   DateUtils, StrUtils;
-
-{ TCacheObjList }
-
-function TCacheObjList.GetObj(aRow: int64): TCacheObj;
-var
-  i : integer;
-  o : TCacheObj;
-begin
-  for i := 0 to Count - 1 do
-  begin
-    o := TCacheObj(Items[i]);
-    if o.Index = aRow then
-    begin
-      result := o;
-      exit;
-    end;
-  end;
-  result := nil;
-end;
-
-function TCacheObjList.GetRow(aRow: int64): TRow;
-var
-  o : TCacheObj;
-begin
-  SetLength(Result, 0);
-  o := GetObj(aRow);
-  if Assigned(o) then
-    result := o.RowData;
-end;
-
-procedure TCacheObjList.SetRow(aRow: int64; const Value: TRow);
-var
-  o : TCacheObj;
-begin
-  o := GetObj(aRow);
-  if Assigned(o) then
-    o.RowData := Value;
-end;
-
-procedure TCacheObjList.Clear;
-var
-  i : integer;
-begin
-  for i := 0 to Count - 1 do
-    TCacheObj(Items[i]).Free;
-  inherited Clear;
-end;
-
-procedure TCacheObjList.Add(Index: Integer; aRow: TRow);
-begin
-  inherited Add(TCacheObj.Create(Index, aRow));
-end;
-
-procedure TCacheObjList.Delete(aRow: Integer);
-var
-  i : integer;
-  o : TCacheObj;
-begin
-  for i := 0 to Count - 1 do
-  begin
-    o := TCacheObj(Items[i]);
-    if o.Index = aRow then
-    begin
-       o.Free;
-      inherited Delete(i);
-      break;
-    end;
-  end;
-end;
 
 
 { TCsvStream }
@@ -389,6 +326,17 @@ begin
     result := r[aCol]
   else
     result := '';
+  SetLength(r, 0);
+end;
+
+function TCsvStream.GetCacheSz: Integer;
+begin
+  result := FCachedRows.Count;
+end;
+
+function TCsvStream.GetModifsSz: Integer;
+begin
+  result := FModifs.Count;
 end;
 
 function TCsvStream.GetCellVariant(aRow: Integer; aCol: Integer): Variant;
@@ -435,6 +383,7 @@ end;
 function TCsvStream.GetRow(aRow: Integer): TRow;
 var
   s : string;
+  p : int64;
 begin
   FModifs.Lock;
   try
@@ -448,10 +397,12 @@ begin
     else
     if Length(FPositions) >= aRow + 1 then
     begin
+      p := Stream.Position;
       Stream.Position := FPositions[aRow];
       ReadLine(s);
+      Stream.Position := p;
       result := CountCols(s);
-      AddCachedRow(result, aRow);
+      FCachedRows.Add(aRow, result);
     end;
   finally
     FModifs.UnLock;
@@ -476,6 +427,7 @@ begin
   FModifs.Lock;
   try
     result := False;
+    RawLine := '';
     ch := #0;
     while (Stream.Read( ch, 1) = 1) and (ch <> #13) do
     begin
@@ -631,8 +583,6 @@ begin
   finally
     FModifs.UnLock;
   end;
-    //if Assigned(FCsvThreadWrite) then
-    //  FCsvThreadWrite.Resume;
 end;
 
 procedure TCsvStream.AddRow(const aLine: String);
@@ -659,27 +609,19 @@ function TCsvStream.IsInCache(aRow: Integer): TCacheObj;
 var
   i : Integer;
 begin
-  for i:=0 to FCachedRows.Count - 1 do
-    if TCacheObj(FCachedRows[i]).Index = aRow then
-    begin
-      result := TCacheObj(FCachedRows[i]);
-      exit;
-    end;
+  with FCachedRows.LockList do
+  try
+    for i:=0 to Count - 1 do
+      if TCacheObj(Items[i]).Index = aRow then
+      begin
+        result := TCacheObj(Items[i]);
+        exit;
+      end;
+  finally
+    FCachedRows.UnlockList;
+  end;
 
   result := nil;
-end;
-
-procedure TCsvStream.AddCachedRow(aRow: TRow; Index: Integer);
-begin
-  FModifs.Lock;
-  try
-    if FCachedRows.Count >= 100 then
-      FCachedRows.Delete(0);
-
-    FCachedRows.Add(Index, aRow);
-  finally
-    FModifs.UnLock;
-  end;
 end;
 
 function TCsvStream.GetCachedRow(aRow: Integer): TRow;
@@ -770,6 +712,118 @@ begin
 end;
 
 
+{ TCacheObjList }
+
+function TCacheObjList.GetCount: Integer;
+begin
+  with LockList do
+  try
+    result := Count;
+  finally
+    UnlockList;
+  end;
+end;
+
+function TCacheObjList.GetObj(aRow: int64): TCacheObj;
+var
+  i : integer;
+  o : TCacheObj;
+begin
+  with LockList do
+  try
+    for i := 0 to Count - 1 do
+    begin
+      o := TCacheObj(Items[i]);
+      if o.Index = aRow then
+      begin
+        result := o;
+        exit;
+      end;
+    end;
+  finally
+    UnlockList;
+  end;
+
+  result := nil;
+end;
+
+function TCacheObjList.GetRow(aRow: int64): TRow;
+var
+  o : TCacheObj;
+begin
+  SetLength(Result, 0);
+  o := GetObj(aRow);
+  if Assigned(o) then
+    result := o.RowData;
+end;
+
+procedure TCacheObjList.SetRow(aRow: int64; const Value: TRow);
+var
+  o : TCacheObj;
+begin
+  o := GetObj(aRow);
+  if Assigned(o) then
+    o.RowData := Value;
+end;
+
+destructor TCacheObjList.Destroy;
+begin
+  Clear;
+  inherited Destroy;
+end;
+
+procedure TCacheObjList.Clear;
+var
+  i : integer;
+begin
+  with LockList do
+  try
+    for i := 0 to Count - 1 do
+      TCacheObj(Items[i]).Free;
+    Clear;
+  finally
+    UnlockList;
+  end;
+end;
+
+procedure TCacheObjList.Add(Index: Integer; const aRow: TRow);
+begin
+  with LockList do
+  try
+     if Count >= 500 then
+     begin
+       TCacheObj(Items[0]).Free;
+       Delete(0);
+     end;
+     inherited Add(TCacheObj.Create(Index, aRow));
+   finally
+    UnlockList;
+  end;
+end;
+
+procedure TCacheObjList.Delete(aRow: Integer);
+var
+  i : integer;
+  o : TCacheObj;
+begin
+  with LockList do
+  try
+    for i := 0 to Count - 1 do
+    begin
+      o := TCacheObj(Items[i]);
+      if o.Index = aRow then
+      begin
+        o.Free;
+        Delete(i);
+        break;
+      end;
+    end;
+  finally
+    UnlockList;
+  end;
+end;
+
+
 { TModif }
 
 constructor TModif.Create;
@@ -780,6 +834,7 @@ end;
 
 destructor TModif.Destroy;
 begin
+  Clear;
   FList.Free;
   inherited;
 end;
@@ -874,7 +929,7 @@ end;
 
 { TCacheObj }
 
-constructor TCacheObj.Create(aIndex : Integer; aDAta : TRow);
+constructor TCacheObj.Create(aIndex : Integer; const aDAta : TRow);
 begin
   inherited Create;
   Index := aIndex;
