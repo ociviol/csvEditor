@@ -1,7 +1,7 @@
 object FrmMain: TFrmMain
-  Left = 507
+  Left = 687
   Height = 611
-  Top = 199
+  Top = 192
   Width = 893
   Caption = 'csv Editor'
   ClientHeight = 611
@@ -117,9 +117,9 @@ object FrmMain: TFrmMain
       Left = 564
       Height = 22
       Top = 2
-      Width = 192
+      Width = 288
       ClientHeight = 22
-      ClientWidth = 192
+      ClientWidth = 288
       TabOrder = 1
       object lblCached: TLabel
         Left = 1
@@ -135,11 +135,21 @@ object FrmMain: TFrmMain
         Left = 89
         Height = 18
         Top = 3
-        Width = 102
+        Width = 129
         Align = alClient
         BorderSpacing.Top = 2
         Caption = 'Modifed lines : 0'
         ParentColor = False
+      end
+      object cbFormulas: TCheckBox
+        Left = 218
+        Height = 20
+        Top = 1
+        Width = 69
+        Align = alRight
+        Caption = 'Formulas'
+        OnChange = cbFormulasChange
+        TabOrder = 0
       end
     end
   end

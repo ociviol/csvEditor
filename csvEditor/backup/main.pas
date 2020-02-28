@@ -49,6 +49,7 @@ type
     ActionSave: TAction;
     ActionOpen: TAction;
     ActionList1: TActionList;
+    cbFormulas: TCheckBox;
     edPosition: TEdit;
     edValue: TEdit;
     ImageList1: TImageList;
@@ -83,6 +84,7 @@ type
     procedure ActionOpenExecute(Sender: TObject);
     procedure ActionPasteExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
+    procedure cbFormulasChange(Sender: TObject);
     procedure edValueExit(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
@@ -350,10 +352,12 @@ begin
       MrCancel:  exit;
     end;
 
+  Screen.Cursor := crHourGlass;
   FreeAndNil(FStream);
   FConfig.AddRecent(aFilename);
   LoadRecentMenu;
   FStream := TCsvStream.Create(aFilename, @Notifyer);
+  FStream.SolveFormulas := cbFormulas.Checked;
   EnableActions;
 end;
 
@@ -450,6 +454,12 @@ begin
   end;
 end;
 
+procedure TFrmMain.cbFormulasChange(Sender: TObject);
+begin
+  if Assigned(FStream) then
+    FStream.SolveFormulas := cbFormulas.Checked;
+end;
+
 procedure TFrmMain.edValueExit(Sender: TObject);
 begin
   with StringGrid1, FStream do
@@ -487,13 +497,18 @@ begin
           Panels[0].Text := 'Ready.';
           StringGrid1.Options := StringGrid1.Options + [goEditing];
           SizeGrid;
+          Screen.Cursor := crDefault;
         end;
 
       csSaving:
         StringGrid1.Options := StringGrid1.Options - [goEditing];
 
       csAnalyzing :
-        SizeGrid;
+        begin
+          SizeGrid;
+          if nbRows > 0 then
+            Screen.Cursor := crDefault;
+        end;
     end;
 
     Refresh;

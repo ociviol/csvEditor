@@ -36,32 +36,33 @@ type
     FSeparator : String;
     FCachedRows : TCacheObjList; //TCacheObj;
     FModifs : TModif;
-    InFlush : Boolean;
+    InFlush,
+    FSolveFormulas: Boolean;
     FFilename : string;
     FCurLine: Integer;
 
     function GetCacheSz: Integer;
-    function GetCellAsStringNoEval(aRow: Integer; aCol: Integer): String;
-    function GetCellString(aRow: Integer; aCol: Integer): String;
-    function GetCellVariant(aRow: Integer; aCol: Integer): Variant;
+    function GetCellAsStringNoEval(const aRow, aCol: Integer): String;
+    function GetCellString(const aRow, aCol: Integer): String;
+    function GetCellVariant(const aRow, aCol: Integer): Variant;
     function GetModified: Boolean;
     function GetModifsSz: Integer;
-    function IsInCache(aRow : Integer):TCacheObj;
-    function GetCachedRow(aRow : Integer):TRow;
-    function GetColCount(aRow: Integer): Integer;
+    function IsInCache(const aRow : Integer):TCacheObj;
+    function GetCachedRow(const aRow : Integer):TRow;
+    function GetColCount(const aRow: Integer): Integer;
     function GetRowCount: Integer;
-    function GetRow(aRow: Integer): TRow;
+    function GetRow(const aRow: Integer): TRow;
     procedure Close(bFreePos : Boolean = True);
     procedure Open(const aFilename : string);
     function GetState: TCsvState;
-    procedure SetCellAsString(aRow: Integer; aCol: Integer; AValue: String);
+    procedure SetCellAsString(const aRow, aCol: Integer; AValue: String);
     function ExecFormula(Formula : String):Variant;
   protected
     FMaxColCount: Integer;
     procedure ThreadTerminate(Sender : TObject);
     procedure SetRowCount(Value : Int64);
-    procedure SetColCount(aRow, Value : Int64);
-    procedure SetPosition(aRow, Value : Int64);
+    procedure SetColCount(const aRow, Value : Int64);
+    procedure SetPosition(const aRow, Value : Int64);
     function ReadLine(var Line: string): boolean;
     function CountCols(aLine : String):TRow;
     procedure Flush(Sender : TObject);
@@ -86,6 +87,7 @@ type
     property Modified:Boolean read GetModified;
     property CacheSz:Integer read GetCacheSz;
     property ModifsSz :Integer read GetModifsSz;
+    property SolveFormulas : Boolean read FSolveFormulas write FSolveFormulas;
   end;
 
   { TCacheObjList }
@@ -93,14 +95,14 @@ type
   TCacheObjList = Class(TThreadList)
   private
     function GetCount: Integer;
-    function GetObj(aRow: int64):TCacheObj;
-    function GetRow(aRow: int64): TRow;
-    procedure SetRow(aRow: int64; const Value: TRow);
+    function GetObj(const aRow: int64):TCacheObj;
+    function GetRow(const aRow: int64): TRow;
+    procedure SetRow(const aRow: int64; const Value: TRow);
   public
     destructor Destroy; override;
     procedure Clear;
     procedure Add(Index : Integer; const aRow : TRow);
-    procedure Delete(aRow : Integer);
+    procedure Delete(const aRow : Integer);
     property Row[aRow:int64]:TRow read GetRow write SetRow;
     property Count : Integer read GetCount;
   end;
@@ -158,7 +160,7 @@ type
 implementation
 
 uses
-  DateUtils, StrUtils;
+  DateUtils, StrUtils, utils.Range;
 
 
 { TCsvStream }
@@ -244,6 +246,7 @@ begin
   inherited Create;
 
   FFilename := Filename;
+  FSolveFormulas := False;
   FMaxColCount := 0;
   FNotifyer := aNotifyer;
   FRowCount := 0;
@@ -298,7 +301,7 @@ begin
   inherited;
 end;
 
-procedure TCsvStream.SetCellAsString(aRow: Integer; aCol: Integer;
+procedure TCsvStream.SetCellAsString(const aRow, aCol: Integer;
   AValue: String);
 var
   r : TRow;
@@ -325,55 +328,10 @@ const
   CS_LETTERS = ['A'..'Z'];
   CS_NUMBERS = ['0'..'9'];
 
-  function ColumnLetterToColumnIndex(const cell : String):Integer;
-  var
-    i : integer;
-  begin
-    Result := 0;
-
-    for i := 1 to Length(cell) do
-    begin
-      Result := Result * 26;
-      Inc(Result, ord(cell[i]) - ord('A'));
-    end;
-end;
-
   function GetChar(var Line : String):String; inline;
   begin
     result := Line[1];
     Line := Copy(Line, 2, Length(Line));
-  end;
-
-  function GetCellCol(Cell : String):Integer;
-  var
-    s : string;
-  begin
-    result := 0;
-    s := '';
-    while length(Cell) > 0 do
-    begin
-      if (Cell[1] in CS_LETTERS) then
-        s := s + GetChar(Cell)
-      else
-        break;
-    end;
-    result := ColumnLetterToColumnIndex(s);
-  end;
-
-  function GetCellRow(Cell : String):Integer;
-  var
-    s : String;
-  begin
-    result := 0;
-    s := '';
-    while length(Cell) > 0 do
-    begin
-      if (Cell[1] in CS_NUMBERS) then
-        s := s + GetChar(Cell)
-      else
-        Cell := Copy(Cell, 2, Length(Cell));
-    end;
-    result := StrToInt(s)-1;
   end;
 
   function GetCell:String;
@@ -422,15 +380,6 @@ end;
     end;
   end;
 
-  function MakePoint:TPoint;
-  var
-    c : String;
-  begin
-    c := GetCell;
-    Result.x := GetCellCol(c);
-    Result.y := GetCellRow(c);
-  end;
-
   function doSum(pDeb, pEnd : TPoint):Variant;
   var
     x,y : integer;
@@ -439,12 +388,6 @@ end;
     for y := pDeb.y to pEnd.y do
       for x := pDeb.x to pEnd.x do
         result := result + CellAsVariant[y, x];
-  end;
-
-  function GetStr(var Val : String; len : integer):String;
-  begin
-    result :=  Copy(Val, 1, len);
-    Val := Copy(Val, len, Length(Val));
   end;
 
 var
@@ -467,29 +410,18 @@ begin
           if s = 'SUM' then
           begin
             // Get range
-            p1 := MakePoint;
+            p1 := TRange.DecodePoint(GetCell); //MakePoint;
             if Formula[1] <> ':' then
               raise Exception.Create('Error in range, received: ''' + Formula[1] + ''' expected '':''');
             GetChar(Formula);
-            p2 := MakePoint;
+            p2 := TRange.DecodePoint(GetCell); //MakePoint;
             result := doSum(p1, p2);
           end;
         end;
 
-      'A'..'Z':
-        begin
-          c1 :=  GetCell;
-          p1.x := GetCellCol(c1);
-          p1.y := GetCellRow(c1);
-        end;
-
+      'A'..'Z': p1 := TRange.DecodePoint(GetCell);
       ':' :
-        begin
-          GetChar(Formula);
-          c2 :=  GetCell;
-          p2.x := GetCellCol(c1);
-          p2.y := GetCellRow(c1);
-        end;
+        ;
 
     else
       s := s + GetChar(Formula);
@@ -501,10 +433,10 @@ begin
 
 end;
 
-function TCsvStream.GetCellString(aRow: Integer; aCol: Integer): String;
+function TCsvStream.GetCellString(const aRow, aCol: Integer): String;
 begin
   result := GetCellAsStringNoEval(aRow, aCol);
-  if result[1] = '=' then
+  if FSolveFormulas and result[1] = '=' then
     result := ExecFormula(copy(result, 2, length(result)))
 end;
 
@@ -513,7 +445,7 @@ begin
   result := FCachedRows.Count;
 end;
 
-function TCsvStream.GetCellAsStringNoEval(aRow: Integer; aCol: Integer): String;
+function TCsvStream.GetCellAsStringNoEval(const aRow, aCol: Integer): String;
 var
   r : TRow;
 begin
@@ -530,7 +462,7 @@ begin
   result := FModifs.Count;
 end;
 
-function TCsvStream.GetCellVariant(aRow: Integer; aCol: Integer): Variant;
+function TCsvStream.GetCellVariant(const aRow, aCol: Integer): Variant;
 var
   s : string;
   r : Extended;
@@ -558,7 +490,7 @@ begin
   result := FModifs.Count > 0;
 end;
 
-function TCsvStream.GetColCount(aRow: Integer): Integer;
+function TCsvStream.GetColCount(const aRow: Integer): Integer;
 begin
   FModifs.Lock;
   try
@@ -571,7 +503,7 @@ begin
   end;
 end;
 
-function TCsvStream.GetRow(aRow: Integer): TRow;
+function TCsvStream.GetRow(const aRow: Integer): TRow;
 var
   s : string;
   p : int64;
@@ -638,7 +570,7 @@ begin
   end;
 end;
 
-procedure TCsvStream.SetColCount(aRow, Value: Int64);
+procedure TCsvStream.SetColCount(const aRow, Value: Int64);
 begin
   FModifs.Lock;
   try
@@ -650,7 +582,7 @@ begin
   end;
 end;
 
-procedure TCsvStream.SetPosition(aRow, Value: Int64);
+procedure TCsvStream.SetPosition(const aRow, Value: Int64);
 begin
   FModifs.Lock;
   try
@@ -796,7 +728,7 @@ begin
   end;
 end;
 
-function TCsvStream.IsInCache(aRow: Integer): TCacheObj;
+function TCsvStream.IsInCache(const aRow: Integer): TCacheObj;
 var
   i : Integer;
 begin
@@ -815,7 +747,7 @@ begin
   result := nil;
 end;
 
-function TCsvStream.GetCachedRow(aRow: Integer): TRow;
+function TCsvStream.GetCachedRow(const aRow: Integer): TRow;
 begin
   Result := FCachedRows.Row[aRow];
 end;
@@ -915,7 +847,7 @@ begin
   end;
 end;
 
-function TCacheObjList.GetObj(aRow: int64): TCacheObj;
+function TCacheObjList.GetObj(const aRow: int64): TCacheObj;
 var
   i : integer;
   o : TCacheObj;
@@ -938,7 +870,7 @@ begin
   result := nil;
 end;
 
-function TCacheObjList.GetRow(aRow: int64): TRow;
+function TCacheObjList.GetRow(const aRow: int64): TRow;
 var
   o : TCacheObj;
 begin
@@ -948,7 +880,7 @@ begin
     result := o.RowData;
 end;
 
-procedure TCacheObjList.SetRow(aRow: int64; const Value: TRow);
+procedure TCacheObjList.SetRow(const aRow: int64; const Value: TRow);
 var
   o : TCacheObj;
 begin
@@ -992,7 +924,7 @@ begin
   end;
 end;
 
-procedure TCacheObjList.Delete(aRow: Integer);
+procedure TCacheObjList.Delete(const aRow: Integer);
 var
   i : integer;
   o : TCacheObj;

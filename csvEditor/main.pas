@@ -49,6 +49,7 @@ type
     ActionSave: TAction;
     ActionOpen: TAction;
     ActionList1: TActionList;
+    cbFormulas: TCheckBox;
     edPosition: TEdit;
     edValue: TEdit;
     ImageList1: TImageList;
@@ -83,6 +84,7 @@ type
     procedure ActionOpenExecute(Sender: TObject);
     procedure ActionPasteExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
+    procedure cbFormulasChange(Sender: TObject);
     procedure edValueExit(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
@@ -355,6 +357,7 @@ begin
   FConfig.AddRecent(aFilename);
   LoadRecentMenu;
   FStream := TCsvStream.Create(aFilename, @Notifyer);
+  FStream.SolveFormulas := cbFormulas.Checked;
   EnableActions;
 end;
 
@@ -448,6 +451,15 @@ begin
     FStream.Save;
   finally
     Screen.Cursor := crDefault;
+  end;
+end;
+
+procedure TFrmMain.cbFormulasChange(Sender: TObject);
+begin
+  if Assigned(FStream) then
+  begin
+    FStream.SolveFormulas := cbFormulas.Checked;
+    StringGrid1.Invalidate;
   end;
 end;
 
