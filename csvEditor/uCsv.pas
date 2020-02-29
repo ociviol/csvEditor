@@ -45,6 +45,7 @@ type
     function GetCellAsStringNoEval(const aRow, aCol: Integer): String;
     function GetCellString(const aRow, aCol: Integer): String;
     function GetCellVariant(const aRow, aCol: Integer): Variant;
+    function GetMaxColCount: Integer;
     function GetModified: Boolean;
     function GetModifsSz: Integer;
     function IsInCache(const aRow : Integer):TCacheObj;
@@ -58,7 +59,6 @@ type
     procedure SetCellAsString(const aRow, aCol: Integer; AValue: String);
     function ExecFormula(Formula : String):Variant;
   protected
-    FMaxColCount: Integer;
     procedure ThreadTerminate(Sender : TObject);
     procedure SetRowCount(Value : Int64);
     procedure SetColCount(const aRow, Value : Int64);
@@ -74,12 +74,13 @@ type
     procedure DeleteRow(aRow : Integer);
     procedure AddRow(const aRow : Array of String); overload;
     procedure AddRow(const aLine : String); overload;
+    procedure AddCol(const aRow : Integer; const Val : String);
     procedure Save(const aFilename : String = '');
     procedure Cancel;
 
     property Filename : String read FFilename;
     property ColCounts[Row:Integer]:Integer read GetColCount;
-    property MaxColCount:Integer read FMaxColCount;
+    property MaxColCount:Integer read GetMaxColCount;
     property RowCount:Integer read GetRowCount;
     property CellAsVariant[aRow:Integer; aCol:Integer]:Variant read GetCellVariant;
     property CellAsString[aRow:Integer; aCol:Integer]:String read GetCellString write SetCellAsString;
@@ -248,7 +249,6 @@ begin
 
   FFilename := Filename;
   FSolveFormulas := False;
-  FMaxColCount := 0;
   FNotifyer := aNotifyer;
   FRowCount := 0;
   FCurRow := -1;
@@ -310,10 +310,10 @@ var
 begin
   FModifs.Lock;
   try
-    r := FModifs.Row[aRow];
-    if length(r) = 0 then
-      r := GetRow(aRow);
+    while FColCounts[aRow] < aCol + 1 do
+      AddCol(aRow, '');
 
+    r := GetRow(aRow);
     // remove from cache
     if Assigned(IsInCache(aRow)) then
       FCachedRows.Delete(aRow);
@@ -492,6 +492,16 @@ end;
 function TCsvStream.GetModified: Boolean;
 begin
   result := FModifs.Count > 0;
+end;
+
+function TCsvStream.GetMaxColCount: Integer;
+var
+  i : integer;
+begin
+  result := 0;
+  for i:= low(FColCounts) to high(FColCounts) do
+    if result < FColCounts[i] then
+      result := FColCounts[i];
 end;
 
 function TCsvStream.GetColCount(const aRow: Integer): Integer;
@@ -705,8 +715,6 @@ begin
     Inc(FRowCount);
     SetLength(FColCounts, Length(FColCounts)+1);
     FColCounts[Length(FColCounts)-1] := Length(aRow);
-    if FMaxColCount < Length(aRow) then
-      FMaxColCount := Length(aRow);
     if (FModifs.Count > 500) then
       Flush(nil);
   finally
@@ -717,6 +725,16 @@ end;
 procedure TCsvStream.AddRow(const aLine: String);
 begin
   AddRow(CountCols(aLine));
+end;
+
+procedure TCsvStream.AddCol(const aRow : Integer; const Val : String);
+var
+  r : TRow;
+begin
+  r := GetRow(aRow);
+  SetLength(r, Length(r) + 1);
+  FModifs.Add(r, aRow);
+  FColCounts[aRow] := Length(r);
 end;
 
 procedure TCsvStream.Save(const aFilename: String = '');
@@ -822,8 +840,6 @@ begin
       if Length(s) > 0 then
       begin
         FFile.SetColCount(nb, Length(FFile.CountCols(s)));
-        if FFile.FMaxColCount < FFile.FColCounts[nb] then
-          FFile.FMaxColCount := FFile.FColCounts[nb];
         Inc(nb);
         FFile.SetPosition(nb, FFile.Stream.Position);
         FFile.SetRowCount(nb);

@@ -55,7 +55,21 @@ type
     ImageList1: TImageList;
     lblCached: TLabel;
     lblModifs: TLabel;
+    MainMenu1: TMainMenu;
     MenuItem1: TMenuItem;
+    MenuItem10: TMenuItem;
+    MenuItem11: TMenuItem;
+    MenuItem12: TMenuItem;
+    N2: TMenuItem;
+    MenuItem13: TMenuItem;
+    MenuItem14: TMenuItem;
+    MenuItem15: TMenuItem;
+    MenuItem16: TMenuItem;
+    MenuItem17: TMenuItem;
+    MenuItem18: TMenuItem;
+    MenuItem19: TMenuItem;
+    MenuItem20: TMenuItem;
+    N1: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
@@ -63,6 +77,7 @@ type
     MenuItem6: TMenuItem;
     MenuItem7: TMenuItem;
     MenuItem8: TMenuItem;
+    MenuItem9: TMenuItem;
     OpenDialog1: TOpenDialog;
     pnlEdit: TPanel;
     Panel3: TPanel;
@@ -90,6 +105,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
+    procedure MenuItem12Click(Sender: TObject);
     procedure PopupMenuPopup(Sender: TObject);
     procedure StringGrid1DrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
@@ -216,6 +232,11 @@ begin
   pnlEdit.Width := ClientWidth div 2;
 end;
 
+procedure TFrmMain.MenuItem12Click(Sender: TObject);
+begin
+  Close;
+end;
+
 procedure TFrmMain.PopupMenuPopup(Sender: TObject);
 begin
   EnableActions;
@@ -282,7 +303,7 @@ begin
       begin
         s := FStream.CellAsString[aRow-1, aCol-1];
         y := ((aRect.Bottom - aRect.Top) - TextHeight(s)) div 2;
-        TextOut(aRect.Left, aRect.Top + y, s);
+        TextOut(aRect.Left + 1, aRect.Top + y, s);
       end;
     end;
   end;
@@ -433,10 +454,11 @@ begin
     if RowCount > 1 then
     begin
       for j := 0 to ColCounts[RowCount - 1] -1 do
-        s := s + ';';
+        s := s + '"";';
       AddRow(s);
     end;
   EnableActions;
+  SizeGrid;
 end;
 
 procedure TFrmMain.ActionCopyExecute(Sender: TObject);

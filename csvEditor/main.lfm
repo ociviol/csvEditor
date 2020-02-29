@@ -4,8 +4,9 @@ object FrmMain: TFrmMain
   Top = 192
   Width = 893
   Caption = 'csv Editor'
-  ClientHeight = 611
+  ClientHeight = 591
   ClientWidth = 893
+  Menu = MainMenu1
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
@@ -14,7 +15,7 @@ object FrmMain: TFrmMain
   LCLVersion = '2.0.4.0'
   object StringGrid1: TStringGrid
     Left = 0
-    Height = 564
+    Height = 544
     Top = 24
     Width = 893
     Align = alClient
@@ -34,7 +35,7 @@ object FrmMain: TFrmMain
   object StatusBar1: TStatusBar
     Left = 0
     Height = 23
-    Top = 588
+    Top = 568
     Width = 893
     Panels = <    
       item
@@ -327,5 +328,52 @@ object FrmMain: TFrmMain
   object PopupMenuRecent: TPopupMenu
     left = 99
     top = 230
+  end
+  object MainMenu1: TMainMenu
+    left = 22
+    top = 91
+    object MenuItem9: TMenuItem
+      Caption = 'File'
+      object MenuItem11: TMenuItem
+        Action = ActionOpen
+      end
+      object N2: TMenuItem
+        Caption = '-'
+      end
+      object MenuItem12: TMenuItem
+        Caption = 'Exit'
+        OnClick = MenuItem12Click
+      end
+    end
+    object MenuItem10: TMenuItem
+      Caption = 'Edit'
+      object MenuItem13: TMenuItem
+        Action = ActionCopy
+      end
+      object MenuItem14: TMenuItem
+        Action = ActionPaste
+      end
+      object N1: TMenuItem
+        Caption = '-'
+      end
+      object MenuItem15: TMenuItem
+        Action = ActionAddCol
+      end
+      object MenuItem19: TMenuItem
+        Action = ActionInsertCol
+      end
+      object MenuItem16: TMenuItem
+        Action = ActionDelCol
+      end
+      object MenuItem17: TMenuItem
+        Action = ActionAddRow
+      end
+      object MenuItem18: TMenuItem
+        Action = ActionInsertRow
+      end
+      object MenuItem20: TMenuItem
+        Action = ActionDelRow
+      end
+    end
   end
 end
