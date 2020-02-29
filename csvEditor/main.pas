@@ -66,7 +66,6 @@ type
     PopupMenuCells: TPopupMenu;
     StatusBar1: TStatusBar;
     StringGrid1: TStringGrid;
-    Timer1: TTimer;
     ToolBar1: TToolBar;
     ToolButton1: TToolButton;
     ToolButton2: TToolButton;
@@ -75,6 +74,7 @@ type
     procedure ActionAddColExecute(Sender: TObject);
     procedure ActionAddRowExecute(Sender: TObject);
     procedure ActionCopyExecute(Sender: TObject);
+    procedure ActionDelRowExecute(Sender: TObject);
     procedure ActionOpenExecute(Sender: TObject);
     procedure ActionPasteExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
@@ -98,8 +98,9 @@ type
       var CanSelect: Boolean);
     procedure StringGrid1SetEditText(Sender: TObject; ACol, ARow: Integer;
       const Value: string);
-    procedure Timer1Timer(Sender: TObject);
   private
+    FColCLicked,
+    FRowCLicked : longint;
     function GetConfigFilename: String;
     procedure Open(const aFilename : String);
     procedure DoSave;
@@ -131,7 +132,7 @@ const
   CS_CONFIG_PATH = '.config/csvEditor';
   CS_CONFIG_JSON = '/config.json';
 {$else}
-  CS_CONFIG_PATH = 'cbzManager';
+  CS_CONFIG_JSON = 'config.json';
 {$endif}
 
 { TFrmMain }
@@ -152,7 +153,7 @@ begin
   StringGrid1.ColWidths[0] := 50;
 
   FStream := TCsvStream.Create('', @Notifyer);
-  FStream.SolveFormulas := cbFormulas.Checked;
+  cbFormulas.Checked := FConfig.UseFormulas;
   for y := 0 to 5 do
   begin
     s := '';
@@ -274,16 +275,15 @@ end;
 
 procedure TFrmMain.StringGrid1MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
-var
-  aCol, aRow : longint;
 begin
   if Button = mbRight then
   begin
-    StringGrid1.MouseToCell(X, Y, aCol, aRow);
-    if aCol = 0 then
+    StringGrid1.MouseToCell(X, Y, FColCLicked, FRowCLicked);
+
+    if FColCLicked = 0 then
       StringGrid1.PopupMenu := PopupMenuRows
     else
-    if aRow = 0 then
+    if FRowCLicked = 0 then
       StringGrid1.PopupMenu := PopupMenuCols
     else
       StringGrid1.PopupMenu := PopupMenuCells;
@@ -310,15 +310,6 @@ begin
   EnableActions;
 end;
 
-procedure TFrmMain.Timer1Timer(Sender: TObject);
-begin
-  if Assigned(FStream) then
-  begin
-    lblCached.Caption := 'Cached lines :' + IntToStr(FStream.CacheSz) + '  ';
-    lblModifs.Caption := 'Modifed lines:' + IntToStr(FStream.ModifsSz);
-  end;
-end;
-
 function TFrmMain.GetConfigFilename: String;
 begin
   // make sure config folder exists
@@ -327,13 +318,17 @@ begin
   ForceDirectories(result);
   result := result + CS_CONFIG_JSON;
 {$else}
-  result := IncludeTrailingPathDelimiter(GetAppConfigDir(False)) + 'config.json';
+  result := IncludeTrailingPathDelimiter(GetAppConfigDir(False)) + CS_CONFIG_JSON;
 {$endif}
 end;
 
 procedure TFrmMain.DoSave;
 begin
+  if not FStream.Modified then
+    Exit;
+
   if FStream.Filename = '' then
+  begin
     with TSaveDialog.Create(nil) do
     try
       DefaultExt := 'csv';
@@ -344,6 +339,9 @@ begin
     finally
       Free;
     end;
+  end
+  else
+    FStream.Save;
 end;
 
 procedure TFrmMain.Open(const aFilename : String);
@@ -437,6 +435,12 @@ begin
   end;
 end;
 
+procedure TFrmMain.ActionDelRowExecute(Sender: TObject);
+begin
+  FStream.DeleteRow(FRowCLicked - 1);
+  SizeGrid;
+end;
+
 procedure TFrmMain.ActionPasteExecute(Sender: TObject);
 begin
   edValue.Clear;
@@ -448,7 +452,7 @@ procedure TFrmMain.ActionAddColExecute(Sender: TObject);
 begin
   with FStream do
     AddCol(StringGrid1.Row, '');
-    //CellAsString[StringGrid1.Row, ColCounts[StringGrid1.Row]] := '';
+
   SizeGrid;
   EnableActions;
 end;
@@ -466,6 +470,7 @@ end;
 
 procedure TFrmMain.cbFormulasChange(Sender: TObject);
 begin
+  FConfig.UseFormulas := cbFormulas.Checked;
   if Assigned(FStream) then
   begin
     FStream.SolveFormulas := cbFormulas.Checked;
@@ -500,7 +505,9 @@ procedure TFrmMain.Notifyer(Sender: TObject; const Msg: string; State: TCsvState
 begin
   with StatusBar1 do
   begin
-    Panels[0].Text := Msg;
+    if (state <> csModifs) and (state <> csCached) then
+      Panels[0].Text := Msg;
+
     Panels[1].Text := 'RowCount: ' + IntToStr(nbRows);
     Panels[2].Text := 'ColCount: ' + IntToStr(FStream.MaxColCount);
 
@@ -522,6 +529,9 @@ begin
           if nbRows > 0 then
             Screen.Cursor := crDefault;
         end;
+
+      csModifs: lblModifs.Caption := 'Modifed lines:' + IntToStr(nbRows);
+      csCached: lblCached.Caption := 'Cached lines :' + IntToStr(nbRows) + '  ';
     end;
 
     Refresh;

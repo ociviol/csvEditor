@@ -17,10 +17,11 @@ type
 
   TConfig = Class(TJsonObject)
   private
-    FBottom: Integer;
-    FLeft: Integer;
-    FRight: Integer;
+    FBottom,
+    FLeft,
+    FRight,
     FTop: Integer;
+    FUseFormulas : Boolean;
     FRecent : TStringlist;
   public
     constructor Create;
@@ -35,6 +36,7 @@ type
     property Right : Integer read FRight write FRight;
     property Bottom : Integer read FBottom write FBottom;
     property Recent : TStringlist read FRecent write FRecent;
+    property UseFormulas : Boolean read FUseFormulas write FUseFormulas;
   end;
 
 implementation
@@ -45,6 +47,7 @@ constructor TConfig.Create;
 begin
   inherited Create;
   FRecent := TStringlist.Create;
+  FUseFormulas := false;
 end;
 
 destructor TConfig.Destroy;

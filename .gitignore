@@ -71,3 +71,10 @@ csvEditor/lib/x86_64-win64/csvEditorWin.res
 *.compiled
 *.obj
 *.ppu
+csvEditor/backup/csvEditorWin.lpi
+csvEditor/backup/csvEditorWin.lpr
+csvEditor/backup/csvEditorWin.lps
+csvEditor/backup/main.lfm
+csvEditor/backup/main.pas
+csvEditor/backup/uconfig.pas
+csvEditor/backup/uCsv.pas

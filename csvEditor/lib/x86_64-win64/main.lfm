@@ -183,6 +183,7 @@ object FrmMain: TFrmMain
     end
     object ActionDelRow: TAction
       Caption = 'Delete Row'
+      OnExecute = ActionDelRowExecute
     end
     object ActionInsertRow: TAction
       Caption = 'Insert Row'
@@ -318,12 +319,6 @@ object FrmMain: TFrmMain
     object MenuItem8: TMenuItem
       Action = ActionAddRow
     end
-  end
-  object Timer1: TTimer
-    Interval = 2000
-    OnTimer = Timer1Timer
-    left = 500
-    top = 151
   end
   object PopupMenuRecent: TPopupMenu
     left = 99

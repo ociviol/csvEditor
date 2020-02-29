@@ -103,7 +103,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="5">
+    <Units Count="7">
       <Unit0>
         <Filename Value="csvEditorWin.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -127,6 +127,15 @@
         <Filename Value="..\..\Utils\utils.range.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit4>
+      <Unit5>
+        <Filename Value="..\..\Utils\utils.zipfile.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Utils.zipfile"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\..\Utils\utils.zipstream.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit6>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -4,7 +4,7 @@ object FrmMain: TFrmMain
   Top = 192
   Width = 893
   Caption = 'csv Editor'
-  ClientHeight = 588
+  ClientHeight = 591
   ClientWidth = 893
   Menu = MainMenu1
   OnCloseQuery = FormCloseQuery
@@ -15,7 +15,7 @@ object FrmMain: TFrmMain
   LCLVersion = '2.0.4.0'
   object StringGrid1: TStringGrid
     Left = 0
-    Height = 543
+    Height = 544
     Top = 24
     Width = 893
     Align = alClient
@@ -34,8 +34,8 @@ object FrmMain: TFrmMain
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Height = 21
-    Top = 567
+    Height = 23
+    Top = 568
     Width = 893
     Panels = <    
       item
@@ -126,27 +126,27 @@ object FrmMain: TFrmMain
         Left = 1
         Height = 18
         Top = 3
-        Width = 107
+        Width = 88
         Align = alLeft
         BorderSpacing.Top = 2
         Caption = 'Cached lines : 0  '
         ParentColor = False
       end
       object lblModifs: TLabel
-        Left = 108
+        Left = 89
         Height = 18
         Top = 3
-        Width = 90
+        Width = 129
         Align = alClient
         BorderSpacing.Top = 2
         Caption = 'Modifed lines : 0'
         ParentColor = False
       end
       object cbFormulas: TCheckBox
-        Left = 198
+        Left = 218
         Height = 20
         Top = 1
-        Width = 89
+        Width = 69
         Align = alRight
         Caption = 'Formulas'
         Checked = True
@@ -183,6 +183,7 @@ object FrmMain: TFrmMain
     end
     object ActionDelRow: TAction
       Caption = 'Delete Row'
+      OnExecute = ActionDelRowExecute
     end
     object ActionInsertRow: TAction
       Caption = 'Insert Row'
@@ -318,12 +319,6 @@ object FrmMain: TFrmMain
     object MenuItem8: TMenuItem
       Action = ActionAddRow
     end
-  end
-  object Timer1: TTimer
-    Interval = 2000
-    OnTimer = Timer1Timer
-    left = 500
-    top = 151
   end
   object PopupMenuRecent: TPopupMenu
     left = 99

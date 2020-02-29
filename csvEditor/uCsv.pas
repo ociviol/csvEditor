@@ -13,7 +13,7 @@ uses
   SysUtils;
 
 type
-  TCsvState = (csReady, csAnalyzing, csError, csSaving);
+  TCsvState = (csReady, csAnalyzing, csError, csSaving, csModifs, csCached);
   TCsvNotyfier = procedure(Sender : TObject; const Msg : string; State : TCsvState; nbRows : Integer) of object;
   TCsvThreadRead = class;
   TRow = Array of string;
@@ -28,7 +28,6 @@ type
     FStream : TStream;
     FColCounts : Array of Integer;
     FPositions : array of Int64;
-    FRowCount,
     FCurRow,
     FPos : Int64;
     FCsvThreadRead : TCsvThreadRead;
@@ -60,7 +59,6 @@ type
     function ExecFormula(Formula : String):Variant;
   protected
     procedure ThreadTerminate(Sender : TObject);
-    procedure SetRowCount(Value : Int64);
     procedure SetColCount(const aRow, Value : Int64);
     procedure SetPosition(const aRow, Value : Int64);
     function ReadLine(var Line: string): boolean;
@@ -96,11 +94,14 @@ type
 
   TCacheObjList = Class(TThreadList)
   private
+    FNotifyer : TCsvNotyfier;
     function GetCount: Integer;
     function GetObj(const aRow: int64):TCacheObj;
     function GetRow(const aRow: int64): TRow;
     procedure SetRow(const aRow: int64; const Value: TRow);
+    procedure Notify(cnt : Integer);
   public
+    constructor Create(aNotifyer : TCsvNotyfier = nil);
     destructor Destroy; override;
     procedure Clear;
     procedure Add(Index : Integer; const aRow : TRow);
@@ -134,28 +135,34 @@ type
   private
     FRow : TRow;
     FIndex : Int64;
+  private
+    property Index : Int64 read FIndex write FIndex;
   public
     constructor Create(const aRow : TRow; aIndex : Integer);
     property Row : TRow read FRow write FRow;
-    property Index : Int64 read FIndex;
   end;
 
   TModif = class
   private
     FList : TThreadList;
+    FNotifyer : TCsvNotyfier;
     function GetRow(aRow: int64): TRow;
+    function GetIndexes(aRow: int64):Integer;
     function Exists(aRow : Integer):Integer;
     function GetCount: Integer;
+    procedure Notify(cnt : Integer);
   public
-    constructor Create;
+    constructor Create(aNotifyer : TCsvNotyfier = nil);
     destructor Destroy; override;
 
     procedure Add(aRow: TRow; aIndex: Int64);
+    procedure Delete(aRow: Integer);
     procedure Clear;
     procedure Lock;
     procedure Unlock;
 
     property Row[aRow:int64]:TRow read GetRow;
+    property Indexes[aRow:int64]:Integer read GetIndexes;
     property Count:Integer read GetCount;
   end;
 
@@ -250,13 +257,12 @@ begin
   FFilename := Filename;
   FSolveFormulas := False;
   FNotifyer := aNotifyer;
-  FRowCount := 0;
   FCurRow := -1;
   FPos := -1;
   InFlush := False;
   FSeparator := ''; //aSeparator;
-  FCachedRows := TCacheObjList.Create;
-  FModifs := TModif.Create;
+  FCachedRows := TCacheObjList.Create(aNotifyer);
+  FModifs := TModif.Create(aNotifyer);
   FCsvThreadRead := nil;
   FStream := nil;
   Open(Filename);
@@ -296,7 +302,6 @@ begin
   end;
 
   Close;
-  FCachedRows.Clear;
   FCachedRows.Free;
   FModifs.Free;
 
@@ -446,7 +451,10 @@ end;
 
 function TCsvStream.GetCacheSz: Integer;
 begin
-  result := FCachedRows.Count;
+  if Assigned(FCachedRows) then
+    result := FCachedRows.Count
+  else
+    result := 0;
 end;
 
 function TCsvStream.GetCellAsStringNoEval(const aRow, aCol: Integer): String;
@@ -499,9 +507,13 @@ var
   i : integer;
 begin
   result := 0;
+  try
   for i:= low(FColCounts) to high(FColCounts) do
     if result < FColCounts[i] then
       result := FColCounts[i];
+  except
+    result := 0;
+  end;
 end;
 
 function TCsvStream.GetColCount(const aRow: Integer): Integer;
@@ -550,7 +562,7 @@ function TCsvStream.GetRowCount: Integer;
 begin
   FModifs.Lock;
   try
-    Result := FRowCount;
+    Result := Length(FColCounts);
   finally
     FModifs.UnLock;
   end;
@@ -609,16 +621,6 @@ begin
   end;
 end;
 
-procedure TCsvStream.SetRowCount(Value: Int64);
-begin
-  FModifs.Lock;
-  try
-    FRowCount := Value;
-  finally
-    FModifs.UnLock;
-  end;
-end;
-
 procedure TCsvStream.ThreadTerminate(Sender: TObject);
 begin
   FCsvThreadRead := nil;
@@ -637,6 +639,7 @@ begin
 
   InFlush := True;
 
+  if FFilename <> '' then
   try
     FModifs.Lock;
     try
@@ -713,11 +716,10 @@ begin
       r[i] := aRow[i];
 
     FModifs.Add(r, RowCount);
-    Inc(FRowCount);
     SetLength(FColCounts, Length(FColCounts)+1);
     FColCounts[Length(FColCounts)-1] := Length(aRow);
-    if (FModifs.Count > 500) then
-      Flush(nil);
+//    if (FModifs.Count > 500) then
+//      Flush(nil);
   finally
     FModifs.UnLock;
   end;
@@ -785,17 +787,38 @@ procedure TCsvStream.DeleteRow(aRow: Integer);
 var
   i : integer;
 begin
-  if FModifs.Count > 0 then
-    Flush(nil);
+//  if FModifs.Count > 0 then
+//    Flush(nil);
 
-  if FRowCount = 0 then
+  if RowCount = 0 then
     Exit;
-    
-  for i := 0 to FRowCount - 2 do
-    FPositions[aRow + i] := FPositions[aRow + i + 1];
-  FCachedRows.Clear;
-  Dec(FRowCount);
-  Flush(nil);
+
+  // if row is in cache
+  if Assigned(IsInCache(aRow)) then
+    FCachedRows.Delete(aRow);
+
+  // if row is modified
+  if FModifs.Exists(aRow) >= 0 then
+  begin
+    i := FModifs.Indexes[aRow];
+    FModifs.Delete(aRow);
+  end;
+
+  // if row is not new
+  if i < length(FPositions) then
+  begin
+    for i := aRow to RowCount - 2 do
+      FPositions[i] := FPositions[i + 1];
+    SetLength(FPositions, Length(FPositions)-1);
+  end;
+
+  for i := aRow to RowCount - 2 do
+    FColCounts[i] := FColCounts[i + 1];
+
+  SetLength(FColCounts, Length(FColCounts)-1);
+
+//  FCachedRows.Clear;
+//  Flush(nil);
 end;
 
 function TCsvStream.GetState: TCsvState;
@@ -843,7 +866,6 @@ begin
         FFile.SetColCount(nb, Length(FFile.CountCols(s)));
         Inc(nb);
         FFile.SetPosition(nb, FFile.Stream.Position);
-        FFile.SetRowCount(nb);
         FFile.SetPosition(nb, FFile.Stream.Position);
       end;
       if (nb mod 50) = 0 then
@@ -863,6 +885,18 @@ end;
 
 
 { TCacheObjList }
+
+constructor TCacheObjList.Create(aNotifyer : TCsvNotyfier = nil);
+begin
+  inherited Create;
+  FNotifyer := aNotifyer;
+end;
+
+destructor TCacheObjList.Destroy;
+begin
+  Clear;
+  inherited Destroy;
+end;
 
 function TCacheObjList.GetCount: Integer;
 begin
@@ -916,10 +950,10 @@ begin
     o.RowData := Value;
 end;
 
-destructor TCacheObjList.Destroy;
+procedure TCacheObjList.Notify(cnt : integer);
 begin
-  Clear;
-  inherited Destroy;
+  if Assigned(FNotifyer) then
+    FNotifyer(Self, '', csModifs, cnt);
 end;
 
 procedure TCacheObjList.Clear;
@@ -931,6 +965,7 @@ begin
     for i := 0 to Count - 1 do
       TCacheObj(Items[i]).Free;
     Clear;
+    Notify(Count);
   finally
     UnlockList;
   end;
@@ -946,6 +981,7 @@ begin
        Delete(0);
      end;
      inherited Add(TCacheObj.Create(Index, aRow));
+     Notify(Count);
    finally
     UnlockList;
   end;
@@ -968,6 +1004,7 @@ begin
         break;
       end;
     end;
+    Notify(Count);
   finally
     UnlockList;
   end;
@@ -976,9 +1013,10 @@ end;
 
 { TModif }
 
-constructor TModif.Create;
+constructor TModif.Create(aNotifyer : TCsvNotyfier = nil);
 begin
   FList := TThreadList.Create;
+  FNotifyer := aNotifyer;
   inherited Create;
 end;
 
@@ -1000,6 +1038,38 @@ begin
       TModifRec(Items[i]).Row := aRow
     else
       Add(TModifRec.Create(aRow, aIndex));
+
+    Notify(Count);
+  finally
+    FList.UnLockList;
+  end;
+end;
+
+procedure TModif.Delete(aRow: Integer);
+var
+  i, ind, tmp : Integer;
+begin
+  with FList.LockList do
+  try
+    ind := -1;
+    for i := 0 to Count - 1 do
+    begin
+      if TModifRec(Items[i]).Index = aRow then
+      begin
+        TModifRec(Items[i]).Free;
+        ind := i;
+      end
+      else
+      if TModifRec(Items[i]).Index > aRow then
+      begin
+        tmp := TModifRec(Items[i]).Index;
+        Dec(tmp);
+        TModifRec(Items[i]).Index := tmp;
+      end;
+    end;
+
+    if ind >= 0 then
+      Delete(ind);
   finally
     FList.UnLockList;
   end;
@@ -1014,6 +1084,8 @@ begin
     for i := 0 to Count - 1 do
       TModifRec(Items[i]).Free;
     Clear;
+
+    Notify(Count);
   finally
     FList.UnLockList;
   end;  
@@ -1039,6 +1111,27 @@ begin
   with FList.LockList do
   try
     result := Count;
+  finally
+    FList.UnLockList;
+  end;
+end;
+
+procedure TModif.Notify(cnt : Integer);
+begin
+  if Assigned(FNotifyer) then
+    FNotifyer(Self, '', csCached, cnt);
+end;
+
+function TModif.GetIndexes(aRow: int64):Integer;
+var
+  i : integer;
+begin
+  Result := -1;
+  with FList.LockList do
+  try
+    i := Exists(aRow);
+    if i>= 0 then
+      Result := TModifRec(Items[i]).Index;
   finally
     FList.UnLockList;
   end;
