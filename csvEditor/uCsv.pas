@@ -13,7 +13,7 @@ uses
   SysUtils;
 
 type
-  TCsvState = (csReady, csAnalyzing, csError, csSaving, csModifs, csCached);
+  TCsvState = (csReady, csAnalyzing, csError, csSaving);
   TCsvNotyfier = procedure(Sender : TObject; const Msg : string; State : TCsvState; nbRows : Integer) of object;
   TCsvThreadRead = class;
   TRow = Array of string;
@@ -94,14 +94,12 @@ type
 
   TCacheObjList = Class(TThreadList)
   private
-    FNotifyer : TCsvNotyfier;
     function GetCount: Integer;
     function GetObj(const aRow: int64):TCacheObj;
     function GetRow(const aRow: int64): TRow;
     procedure SetRow(const aRow: int64; const Value: TRow);
-    procedure Notify(cnt : Integer);
   public
-    constructor Create(aNotifyer : TCsvNotyfier = nil);
+    constructor Create;
     destructor Destroy; override;
     procedure Clear;
     procedure Add(Index : Integer; const aRow : TRow);
@@ -145,12 +143,10 @@ type
   TModif = class
   private
     FList : TThreadList;
-    FNotifyer : TCsvNotyfier;
     function GetRow(aRow: int64): TRow;
     function GetIndexes(aRow: int64):Integer;
     function Exists(aRow : Integer):Integer;
     function GetCount: Integer;
-    procedure Notify(cnt : Integer);
   public
     constructor Create(aNotifyer : TCsvNotyfier = nil);
     destructor Destroy; override;
@@ -261,8 +257,8 @@ begin
   FPos := -1;
   InFlush := False;
   FSeparator := ''; //aSeparator;
-  FCachedRows := TCacheObjList.Create(aNotifyer);
-  FModifs := TModif.Create(aNotifyer);
+  FCachedRows := TCacheObjList.Create;
+  FModifs := TModif.Create;
   FCsvThreadRead := nil;
   FStream := nil;
   Open(Filename);
@@ -886,10 +882,9 @@ end;
 
 { TCacheObjList }
 
-constructor TCacheObjList.Create(aNotifyer : TCsvNotyfier = nil);
+constructor TCacheObjList.Create;
 begin
   inherited Create;
-  FNotifyer := aNotifyer;
 end;
 
 destructor TCacheObjList.Destroy;
@@ -950,12 +945,6 @@ begin
     o.RowData := Value;
 end;
 
-procedure TCacheObjList.Notify(cnt : integer);
-begin
-  if Assigned(FNotifyer) then
-    FNotifyer(Self, '', csModifs, cnt);
-end;
-
 procedure TCacheObjList.Clear;
 var
   i : integer;
@@ -965,7 +954,6 @@ begin
     for i := 0 to Count - 1 do
       TCacheObj(Items[i]).Free;
     Clear;
-    Notify(Count);
   finally
     UnlockList;
   end;
@@ -981,7 +969,6 @@ begin
        Delete(0);
      end;
      inherited Add(TCacheObj.Create(Index, aRow));
-     Notify(Count);
    finally
     UnlockList;
   end;
@@ -1004,7 +991,6 @@ begin
         break;
       end;
     end;
-    Notify(Count);
   finally
     UnlockList;
   end;
@@ -1016,7 +1002,6 @@ end;
 constructor TModif.Create(aNotifyer : TCsvNotyfier = nil);
 begin
   FList := TThreadList.Create;
-  FNotifyer := aNotifyer;
   inherited Create;
 end;
 
@@ -1039,7 +1024,6 @@ begin
     else
       Add(TModifRec.Create(aRow, aIndex));
 
-    Notify(Count);
   finally
     FList.UnLockList;
   end;
@@ -1085,7 +1069,6 @@ begin
       TModifRec(Items[i]).Free;
     Clear;
 
-    Notify(Count);
   finally
     FList.UnLockList;
   end;  
@@ -1114,12 +1097,6 @@ begin
   finally
     FList.UnLockList;
   end;
-end;
-
-procedure TModif.Notify(cnt : Integer);
-begin
-  if Assigned(FNotifyer) then
-    FNotifyer(Self, '', csCached, cnt);
 end;
 
 function TModif.GetIndexes(aRow: int64):Integer;

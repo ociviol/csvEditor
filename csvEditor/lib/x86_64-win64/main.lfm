@@ -371,4 +371,9 @@ object FrmMain: TFrmMain
       end
     end
   end
+  object Timer1: TTimer
+    OnTimer = Timer1Timer
+    left = 288
+    top = 184
+  end
 end

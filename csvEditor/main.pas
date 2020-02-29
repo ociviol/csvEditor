@@ -71,6 +71,7 @@ type
     ToolButton2: TToolButton;
     ToolButton3: TToolButton;
     ToolButton4: TToolButton;
+    Timer1 : TTimer;
     procedure ActionAddColExecute(Sender: TObject);
     procedure ActionAddRowExecute(Sender: TObject);
     procedure ActionCopyExecute(Sender: TObject);
@@ -98,6 +99,7 @@ type
       var CanSelect: Boolean);
     procedure StringGrid1SetEditText(Sender: TObject; ACol, ARow: Integer;
       const Value: string);
+    procedure Timer1Timer(Sender: TObject);
   private
     FColCLicked,
     FRowCLicked : longint;
@@ -310,6 +312,15 @@ begin
   EnableActions;
 end;
 
+procedure TFrmMain.Timer1Timer(Sender: TObject);
+begin
+  if Assigned(FStream) then
+  begin
+    lblModifs.Caption := 'Modifed lines:' + IntToStr(FStream.ModifsSz);
+    lblCached.Caption := 'Cached lines :' + IntToStr(FStream.CacheSz) + '  ';
+  end;
+end;
+
 function TFrmMain.GetConfigFilename: String;
 begin
   // make sure config folder exists
@@ -505,9 +516,7 @@ procedure TFrmMain.Notifyer(Sender: TObject; const Msg: string; State: TCsvState
 begin
   with StatusBar1 do
   begin
-    if (state <> csModifs) and (state <> csCached) then
-      Panels[0].Text := Msg;
-
+    Panels[0].Text := Msg;
     Panels[1].Text := 'RowCount: ' + IntToStr(nbRows);
     Panels[2].Text := 'ColCount: ' + IntToStr(FStream.MaxColCount);
 
@@ -529,9 +538,6 @@ begin
           if nbRows > 0 then
             Screen.Cursor := crDefault;
         end;
-
-      csModifs: lblModifs.Caption := 'Modifed lines:' + IntToStr(nbRows);
-      csCached: lblCached.Caption := 'Cached lines :' + IntToStr(nbRows) + '  ';
     end;
 
     Refresh;
