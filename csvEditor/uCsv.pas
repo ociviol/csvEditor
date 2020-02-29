@@ -75,6 +75,7 @@ type
     procedure AddCol(const aRow : Integer; const Val : String);
     procedure Save(const aFilename : String = '');
     procedure Cancel;
+    procedure Swap(aRow, aDest : Integer);
 
     property Filename : String read FFilename;
     property ColCounts[Row:Integer]:Integer read GetColCount;
@@ -753,6 +754,39 @@ begin
     FCsvThreadRead.Terminate;
     Sleep(1000);
   end;
+end;
+
+procedure TCsvStream.Swap(aRow, aDest : Integer);
+var
+  v, v2 : int64;
+  r1, r2 : TRow;
+  o1, o2 : TCacheObj;
+begin
+  {
+  v := FPositions[aRow];
+  FPositions[aRow] := FPositions[aDest];
+  FPositions[aDest] := v;
+
+  v := FColCounts[aRow];
+  FColCounts[aRow] := FColCounts[aDest];
+  FColCounts[aDest] := v;
+
+  if FModifs.Exists(aRow) >= 0 then
+    r1 := FModifs.Row[aRow];
+  if FModifs.Exists(aDest) >= 0 then
+    r2 := FModifs.Row[aDest];
+  if FModifs.Exists(aRow) >= 0 then
+    FModifs.Add(r2, aRow);
+  if FModifs.Exists(aDest) >= 0 then
+    FModifs.Add(r1, aDest);
+
+  o1 := IsInCache(aRow);
+  o1 := IsInCache(aDest);
+  if Assigned(o1) then
+    o1.Index := aDest;
+  if Assigned(o2) then
+    o2.Index := aRow;
+    }
 end;
 
 function TCsvStream.IsInCache(const aRow: Integer): TCacheObj;

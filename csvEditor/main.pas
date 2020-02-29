@@ -17,6 +17,7 @@ type
   { TFrmMain }
 
   TFrmMain = class(TForm)
+    ActionMoveRowUp: TAction;
     ActionPaste: TAction;
     ActionCopy: TAction;
     ActionDelCol: TAction;
@@ -39,6 +40,8 @@ type
     MenuItem10: TMenuItem;
     MenuItem11: TMenuItem;
     MenuItem12: TMenuItem;
+    MenuItem21: TMenuItem;
+    N3: TMenuItem;
     N2: TMenuItem;
     MenuItem13: TMenuItem;
     MenuItem14: TMenuItem;
@@ -76,6 +79,7 @@ type
     procedure ActionAddRowExecute(Sender: TObject);
     procedure ActionCopyExecute(Sender: TObject);
     procedure ActionDelRowExecute(Sender: TObject);
+    procedure ActionMoveRowUpExecute(Sender: TObject);
     procedure ActionOpenExecute(Sender: TObject);
     procedure ActionPasteExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
@@ -306,9 +310,7 @@ end;
 procedure TFrmMain.StringGrid1SetEditText(Sender: TObject; ACol, ARow: Integer;
   const Value: string);
 begin
-  with FStream do
-    if CellAsString[arow - 1, acol - 1] <> Value then
-      CellAsString[arow - 1, acol - 1] := Value;
+  FStream.CellAsString[arow - 1, acol - 1] := Value;
   EnableActions;
 end;
 
@@ -452,6 +454,15 @@ begin
   SizeGrid;
 end;
 
+procedure TFrmMain.ActionMoveRowUpExecute(Sender: TObject);
+begin
+  if FRowCLicked - 1 = FStream.RowCount then
+    FStream.Swap(FRowCLicked - 1, FRowCLicked)
+  else
+    FStream.Swap(FRowCLicked-1, FRowCLicked-2);
+  StringGrid1.Invalidate;
+end;
+
 procedure TFrmMain.ActionPasteExecute(Sender: TObject);
 begin
   edValue.Clear;
@@ -557,6 +568,7 @@ begin
   ActionAddCol.Enabled := Assigned(FStream);
   ActionAddRow.Enabled := Assigned(FStream);
   ActionDelRow.Enabled := Assigned(FStream);
+  ActionMoveRowUp.Enabled := Assigned(FStream);
 end;
 
 procedure TFrmMain.SizeGrid;

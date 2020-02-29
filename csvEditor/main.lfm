@@ -202,6 +202,10 @@ object FrmMain: TFrmMain
       Caption = 'Paste'
       OnExecute = ActionPasteExecute
     end
+    object ActionMoveRowUp: TAction
+      Caption = 'Move Row Up'
+      OnExecute = ActionMoveRowUpExecute
+    end
   end
   object ImageList1: TImageList
     left = 373
@@ -308,8 +312,8 @@ object FrmMain: TFrmMain
   end
   object PopupMenuRows: TPopupMenu
     OnPopup = PopupMenuPopup
-    left = 388
-    top = 93
+    left = 40
+    top = 200
     object MenuItem6: TMenuItem
       Action = ActionDelRow
     end
@@ -318,6 +322,12 @@ object FrmMain: TFrmMain
     end
     object MenuItem8: TMenuItem
       Action = ActionAddRow
+    end
+    object N3: TMenuItem
+      Caption = '-'
+    end
+    object MenuItem21: TMenuItem
+      Action = ActionMoveRowUp
     end
   end
   object PopupMenuRecent: TPopupMenu
