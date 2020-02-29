@@ -4,7 +4,7 @@ object FrmMain: TFrmMain
   Top = 192
   Width = 893
   Caption = 'csv Editor'
-  ClientHeight = 591
+  ClientHeight = 588
   ClientWidth = 893
   Menu = MainMenu1
   OnCloseQuery = FormCloseQuery
@@ -15,7 +15,7 @@ object FrmMain: TFrmMain
   LCLVersion = '2.0.4.0'
   object StringGrid1: TStringGrid
     Left = 0
-    Height = 544
+    Height = 543
     Top = 24
     Width = 893
     Align = alClient
@@ -34,8 +34,8 @@ object FrmMain: TFrmMain
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Height = 23
-    Top = 568
+    Height = 21
+    Top = 567
     Width = 893
     Panels = <    
       item
@@ -126,27 +126,27 @@ object FrmMain: TFrmMain
         Left = 1
         Height = 18
         Top = 3
-        Width = 88
+        Width = 107
         Align = alLeft
         BorderSpacing.Top = 2
         Caption = 'Cached lines : 0  '
         ParentColor = False
       end
       object lblModifs: TLabel
-        Left = 89
+        Left = 108
         Height = 18
         Top = 3
-        Width = 129
+        Width = 90
         Align = alClient
         BorderSpacing.Top = 2
         Caption = 'Modifed lines : 0'
         ParentColor = False
       end
       object cbFormulas: TCheckBox
-        Left = 218
+        Left = 198
         Height = 20
         Top = 1
-        Width = 69
+        Width = 89
         Align = alRight
         Caption = 'Formulas'
         Checked = True

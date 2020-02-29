@@ -566,14 +566,15 @@ begin
     result := False;
     RawLine := '';
     ch := #0;
-    while (Stream.Read( ch, 1) = 1) and (ch <> #13) do
+
+    while (Stream.Read( ch, 1) = 1) and (ch <> #13) and (ch <> #10) do
     begin
       result := True;
       RawLine := RawLine + ch
     end;
 
     Line := RawLine;
-    if ch = #13 then
+    if (ch = #13) or (ch = #10) then
     begin
       result := True;
       if (Stream.Read( ch, 1) = 1) and (ch <> #10) then

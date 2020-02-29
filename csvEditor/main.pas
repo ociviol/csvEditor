@@ -6,34 +6,13 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Grids, ExtCtrls,
-  Buttons, ComCtrls, ActnList, Menus, StdCtrls, uCsv, Types, Utils.Json;
+  Buttons, ComCtrls, ActnList, Menus, StdCtrls,
+  {$if defined(Linux) or defined(Darwin)}
+  cthreads,
+  {$endif}
+  uCsv, Types, uConfig;
 
 type
-
-
-  { TConfig }
-
-  TConfig = Class(TJsonObject)
-  private
-    FBottom: Integer;
-    FLeft: Integer;
-    FRight: Integer;
-    FTop: Integer;
-    FRecent : TStringlist;
-  public
-    constructor Create;
-    destructor Destroy; override;
-
-    function GetBoundsRect:Trect;
-    procedure SetBoundsRect(const Value : Trect);
-    procedure AddRecent(const aFilename : String);
-  published
-    property Left : Integer read FLeft write FLeft;
-    property Top : Integer read FTop write FTop;
-    property Right : Integer read FRight write FRight;
-    property Bottom : Integer read FBottom write FBottom;
-    property Recent : TStringlist read FRecent write FRecent;
-  end;
 
   { TFrmMain }
 
@@ -147,44 +126,13 @@ implementation
 uses
   Clipbrd;
 
-{ TConfig }
-
-constructor TConfig.Create;
-begin
-  inherited Create;
-  FRecent := TStringlist.Create;
-end;
-
-destructor TConfig.Destroy;
-begin
-  FRecent.Free;
-  inherited Destroy;
-end;
-
-function TConfig.GetBoundsRect: Trect;
-begin
-  result := Rect(FLeft, FTop, FRight, FBottom);
-end;
-
-procedure TConfig.SetBoundsRect(const Value: Trect);
-begin
-  Fleft := Value.Left;
-  FTop := Value.Top;
-  FRight := Value.Right;
-  FBottom := Value.Bottom;
-end;
-
-procedure TConfig.AddRecent(const aFilename: String);
-begin
-  with FRecent do
-    if IndexOf(aFilename) < 0 then
-    begin
-      if Count > 10 then
-        Delete(0);
-      Add(aFilename);
-    end;
-end;
-
+const
+{$if defined(Darwin) or defined(Linux)}
+  CS_CONFIG_PATH = '.config/csvEditor';
+  CS_CONFIG_JSON = '/config.json';
+{$else}
+  CS_CONFIG_PATH = 'cbzManager';
+{$endif}
 
 { TFrmMain }
 
@@ -373,7 +321,14 @@ end;
 
 function TFrmMain.GetConfigFilename: String;
 begin
+  // make sure config folder exists
+{$if defined(Darwin) or defined(Linux)}
+  result := expandfilename('~/') + CS_CONFIG_PATH;
+  ForceDirectories(result);
+  result := result + CS_CONFIG_JSON;
+{$else}
   result := IncludeTrailingPathDelimiter(GetAppConfigDir(False)) + 'config.json';
+{$endif}
 end;
 
 procedure TFrmMain.DoSave;
